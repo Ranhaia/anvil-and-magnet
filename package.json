@@ -4,8 +4,7 @@
   "description": "Anvil & Magnet — Micro-Metroidvania Roguelite Arcade Edition",
   "main": "index.html",
   "scripts": {
-    "dev": "npx serve .",
-    "build": "echo 'Static web assets ready for deploy'"
+    "dev": "npx serve ."
   },
   "keywords": ["game", "canvas", "roguelite", "pixel-art"],
   "author": "Ranhaia",
