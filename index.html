@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Anvil & Magnet — Micro-Metroidvania Roguelite</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="shortcut icon" href="assets/favicon.ico">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="arcade-cabinet">
+    <!-- Marquee Header -->
+    <header class="cabinet-marquee">
+      <div class="marquee-title">
+        <span class="edition-badge">GGJ ARCADE</span>
+        <h1>ANVIL & MAGNET</h1>
+        <span class="sub-badge">ROGUELITE EDITION</span>
+      </div>
+      <div class="marquee-actions">
+        <button id="sound-btn" class="arcade-pill" title="Alternar Som">🔊 SOM: LIGADO</button>
+        <button id="fullscreen-btn" class="arcade-pill" title="Tela Cheia">⛶ TELA CHEIA</button>
+      </div>
+    </header>
+
+    <!-- Screen Bezel -->
+    <div class="cabinet-screen">
+      <!-- HUD Overlay -->
+      <div id="hud" class="hud-overlay" hidden>
+        <div class="hud-left">
+          <div class="hud-stat-box">
+            <span class="stat-label">VIDA</span>
+            <div class="health-bar-container">
+              <div id="health-bar-fill" class="health-bar-fill"></div>
+            </div>
+          </div>
+          <div class="hud-stat-box">
+            <span class="stat-label">ESPECIAL GÁS [E]</span>
+            <div class="gas-bar-container">
+              <div id="gas-bar-fill" class="gas-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="distance-badge">
+            <span class="stat-label">PROFUNDIDADE</span>
+            <strong id="distance-readout">0 m</strong>
+          </div>
+          <div id="blood-moon-indicator" class="blood-moon-badge" hidden>
+            ⚠️ LUA VERMELHA ATIVA!
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <div class="score-card">
+            <span class="stat-label">MULTIPLICADOR</span>
+            <strong id="multiplier-readout" class="multi-value">1.0x</strong>
+          </div>
+          <div class="score-card">
+            <span class="stat-label">PONTOS</span>
+            <strong id="score-readout">0</strong>
+          </div>
+          <div class="score-card high-score-box">
+            <span class="stat-label">RECORDE</span>
+            <strong id="high-score-readout">0</strong>
+          </div>
+        </div>
+
+        <!-- Teleport Indicator -->
+        <div class="teleport-hint">
+          <span id="teleport-status" class="teleport-ready">🌀 RECALL [Q]: PRONTO</span>
+        </div>
+      </div>
+
+      <!-- Main Canvas -->
+      <canvas id="game-canvas" width="960" height="540"></canvas>
+
+      <!-- Title Screen Overlay -->
+      <div id="title-screen" class="screen-overlay title-overlay">
+        <div class="title-card">
+          <img src="assets/title_screen.png" alt="Anvil & Magnet" class="title-poster">
+          <div class="title-details">
+            <h2 class="hero-game-title">ANVIL & MAGNET</h2>
+            <p class="game-tagline">Controle o ímã com o mouse. Esmague com a bigorna. Sobreviva à Lua Vermelha.</p>
+            <div class="control-cheat-sheet">
+              <div><kbd>A</kbd> <kbd>D</kbd> Mover</div>
+              <div><kbd>W</kbd> ou <kbd>Espaço</kbd> Pular (Pulo Duplo com a bigorna no pé)</div>
+              <div><kbd>Mouse Esq.</kbd> Puxar Bigorna (PULL - Alta Força)</div>
+              <div><kbd>Mouse Dir.</kbd> Arremessar Bigorna (PUSH - Canhão)</div>
+              <div><kbd>R</kbd> Chamar Bigorna (Recall Instantâneo)</div>
+              <div><kbd>Q</kbd> Teleporte ao Santuário (Recall)</div>
+              <div><kbd>E</kbd> Especial: "Olha o Gás!" 💥</div>
+              <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> Trocar Bigorna</div>
+            </div>
+            <button id="start-btn" class="arcade-start-btn">INICIAR PARTIDA · CLIQUE OU ENTER</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over Overlay -->
+      <div id="game-over-screen" class="screen-overlay game-over-overlay" hidden>
+        <div class="game-over-card">
+          <img src="assets/game_over.png" alt="Game Over" class="game-over-banner">
+          <h2>VOCÊ FOI DERROTADO!</h2>
+          <p class="permadeath-notice">No estilo Roguelite, a run se encerra aqui.</p>
+          <div class="game-over-stats">
+            <div><span>Distância Atingida:</span> <strong id="go-dist">0 m</strong></div>
+            <div><span>Monstros Esmagados:</span> <strong id="go-kills">0</strong></div>
+            <div><span>Pontuação da Run:</span> <strong id="go-score">0</strong></div>
+            <div><span>Maior Recorde:</span> <strong id="go-high" class="gold-text">0</strong></div>
+          </div>
+          <button id="restart-btn" class="arcade-start-btn pulse-glow">TENTAR NOVAMENTE · ENTER</button>
+        </div>
+      </div>
+
+      <!-- Fortune / Sorte ou Revés Modal -->
+      <div id="fortune-modal" class="screen-overlay fortune-overlay" hidden>
+        <div class="fortune-card">
+          <span class="altar-badge">ALTAR DA FORTUNA</span>
+          <h3>ESCOLHA SEU DESTINO (SORTE OU REVÉS)</h3>
+          <p>Sobreviver ao perigo lhe concede uma dádiva... com um preço.</p>
+          <div id="fortune-options" class="fortune-options-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cabinet Footer -->
+    <footer class="cabinet-deck">
+      <div class="deck-hints">
+        <span>📡 Radar de Borda: a seta e distância mostram exatamente onde a bigorna está na tela ou fora dela.</span>
+        <span>⚡ Aperte [R] para chamar a bigorna imediatamente aos seus pés caso precise!</span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="src/game.js"></script>
+</body>
+</html>

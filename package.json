@@ -1,0 +1,13 @@
+{
+  "name": "anvil-and-magnet",
+  "version": "1.0.0",
+  "description": "Anvil & Magnet — Micro-Metroidvania Roguelite Arcade Edition",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static web assets ready for deploy'"
+  },
+  "keywords": ["game", "canvas", "roguelite", "pixel-art"],
+  "author": "Ranhaia",
+  "license": "MIT"
+}
