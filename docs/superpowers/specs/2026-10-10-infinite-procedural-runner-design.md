@@ -1,4 +1,4 @@
-# Especificação de Arquitetura — Gerador Procedural Linear Infinito
+# Especificação de Arquitetura — Gerador Procedural Bi-Nível (Superfície & Subterrâneo)
 
 **Data:** 2026-10-10  
 **Status:** Em Revisão (Aguardando Aprovação de Design)  
@@ -9,118 +9,140 @@
 
 ## 1. Visão Geral e Filosofia de Design
 
-A geração de fases adota o modelo **Linear Infinito Horizontal (Opção A)**.
-O jogo inicia no **Templo Central Seguro (X = 0m)** e se expande continuamente para a direita (e opcionalmente para a esquerda em direção às Catacumbas Profundas).
+A geração de fases adota o modelo **Linear Infinito Horizontal Bi-Nível (Dois Andares)**:
+O terreno **NÃO é composto por ilhas flutuantes no vazio**. É um solo sólido e contínuo de pedra e terra firme na superfície, intercalado por **fendas e buracos geológicos**.
 
-### O Loop Central de Risco vs. Recompensa (Push-Your-Luck):
-1. **Cada metro percorrido aumenta a pontuação e o perigo:** A cada 50m, o multiplicador de pontos escala em +0.5x, o terreno ganha mais abismos e a fauna de monstros se torna mais letal.
-2. **A Decisão do Teleporte [Q]:** O jogador acumula uma fortuna de pontos conforme avança. Se morrer, perde tudo (Permadeath). Ele deve decidir constantemente: *"Arrisco mais 50m no inferno da Lua Vermelha ou canalizo o teleporte para o Santuário anterior?"*
-3. **Travessia Justa Garantida por Matemática (Rhythm Parabola):** Nenhuma plataforma gerada é impossível. A distância e altura dos saltos são calculadas diretamente a partir das constantes de física do Herói ($V_x$, $V_y$, gravidade e alcance magnético da bigorna).
+### 🌟 Regras Fundamentais de Level Design:
+1. **Buraco Nunca Mata por Queda:** Cair em uma fenda da superfície **não causa morte instantânea** nem reinicia a run. O jogador cai no **Andar Subterrâneo (As Catacumbas Inferiores)**.
+2. **Rota de Retorno à Superfície:** O subterrâneo possui rotas de escalada — plataformas de apoio, pilares metálicos verticais para atração magnética com a bigorna e rampas — permitindo que o jogador lute para subir de volta à superfície ensolarada/noturna.
+3. **Condição Real de Morte (Lava & Espinhos):**
+   - A morte por ambiente só ocorre ao cair em **Lava Vulcânica Incandescente** ou em **Poços de Espinhos de Ferro** situados no leito mais profundo do subterrâneo.
+   - A queda em si é uma transição de gameplay (tensão e oportunidade), e não uma punição injusta de fim de jogo.
 
 ---
 
-## 2. Arquitetura Modular do Sistema
+## 2. A Estrutura Espacial dos Dois Andares (Corte Vertical)
 
-O sistema é composto por 4 módulos autônomos em `src/generation/`:
+Cada chunk de mundo possui uma altura vertical expandida (~800 a 900px), dividida em duas camadas contínuas:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  CÉU NOTURNO & PARALLAX                                      │
+│                                                              │
+│  [ANDAR SUPERIOR - SUPERFÍCIE] (Y ≈ 360 - 440px)             │
+│  ███████████████████        ████████████████████████████████ │ <- Solo Firme
+│                     \      /                                 │
+│                      |    | <- Fenda / Buraco (Entrada)      │
+│                      v    v                                  │
+│  [ANDAR INFERIOR - SUBTERRÂNEO] (Y ≈ 560 - 750px)            │
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │ <- Teto Caverna
+│     [Plataforma]    [Viga Metal]    [Rampa de Subida ^]      │
+│  ██████████       ███████████████     ██████████████████████ │ <- Chão Caverna
+│                                                              │
+│  [LEITO FATAL - FUNDO ABSOLUTO] (Y > 800px)                  │
+│  ▲▲▲▲▲ ESPINHOS ▲▲▲▲▲    ~~~~~~~~ LAVA ~~~~~~~~    ▲▲▲▲▲     │ <- MORTE / DANO
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Dinâmica de Gameplay entre os Níveis
+
+### Andar 1: A Superfície (A Rota Expressa de Alta Pontuação)
+* **Ambiente:** Céu aberto com o ciclo de crepúsculo e a transição da **Lua Vermelha**.
+* **Ritmo:** Corrida fluida e rápida, visão clara e orbes magnéticos flutuando.
+* **Inimigos:** Patrulhas regulares de Monstrengas terrestres e DevilBats no céu.
+* **Recompensa:** Maior velocidade de avanço em metros e coleta ágil de orbes de combo.
+
+### Andar 2: O Subterrâneo (A Rota Claustrofóbica de Sobrevivência)
+* **Ambiente:** Cavernas góticas com estalactites, vigas de ferro enferrujadas e pouca luz.
+* **Ritmo:** Mais lento e tático. O jogador precisa se defender em espaços confinados.
+* **Inimigos:** Inimigos sombrios **Dark Enemy (Null)** e morcegos rasteiros.
+* **A Escalada de Retorno:**
+  1. *Salto Duplo na Bigorna:* Usar a mecânica de colocar a bigorna sob os pés para alcançar plataformas superiores.
+  2. *Atração Magnética Vertical:* Disparar a bigorna para o teto e puxar-se em direção à fenda da superfície.
+  3. *Rampas e Eixos:* A cada 60 a 90 metros no subterrâneo, há uma abertura natural com degraus em zig-zag que leva de volta ao solo da superfície.
+
+### O Leito Fatal: Lava e Espinhos (Condição Real de Morte)
+* Localizados apenas nas fendas mais profundas do subterrâneo.
+* **Lava:** Causa dano contínuo instantâneo massivo (50% de HP por segundo) e joga o herói para cima com efeito de queimadura.
+* **Espinhos:** Morte imediata ao contato no fundo de fossos mal calculados.
+
+---
+
+## 4. Arquitetura Modular do Gerador Bi-Nível
 
 ```
 src/
 └── generation/
-    ├── ChunkManager.js          # Streaming de chunks em memória e reciclagem
-    ├── RhythmPlanner.js         # Cálculo das parábolas de salto e cadência de pulo
-    ├── BiomeRules.js            # Regras de densidade, inimigos e tiles por metro
-    └── EntitySpawner.js         # Posicionamento de Santuários, Orbes, Inimigos e Gás
+    ├── ChunkManager.js          # Streaming horizontal com viewport vertical dinâmico
+    ├── SurfaceGenerator.js      # Gera a linha contínua da superfície com fendas naturais
+    ├── UnderworldGenerator.js   # Gera cavernas, rotas de resgate, vigas e plataformas
+    ├── HazardSystem.js          # Posiciona poços de Lava e Espinhos no leito inferior
+    └── EntitySpawner.js         # Posiciona Santuários, Altares, Monstrengas e Orbes
 ```
 
 ```mermaid
 graph TD
-    Camera[Camera X] --> ChunkManager[ChunkManager - Streaming 3 Chunks]
-    ChunkManager --> BiomeRules[BiomeRules - Dificuldade por Metro]
-    BiomeRules --> RhythmPlanner[RhythmPlanner - Parábolas de Salto]
-    RhythmPlanner --> TilemapBuilder[TilemapBuilder - Matriz 32x32]
-    BiomeRules --> EntitySpawner[EntitySpawner - Monstros, Santuários, Orbes]
-    TilemapBuilder --> Renderer[Canvas Renderer]
-    EntitySpawner --> Renderer
+    Seed[Gerador Seed / Metros] --> Splitter[Gerador Bi-Nível]
+    Splitter --> Surface[SurfaceGenerator: Chão Sólido + Fendas]
+    Splitter --> Underworld[UnderworldGenerator: Caverna + Rotas de Escalada]
+    Underworld --> Hazards[HazardSystem: Leito de Lava & Espinhos]
+    Surface --> EntitySpawner[EntitySpawner: Santuários e Monstrengas]
+    Underworld --> EntitySpawner
+    EntitySpawner --> ChunkAssembler[ChunkAssembler: Matriz 32x32]
 ```
 
 ---
 
-## 3. Detalhamento dos Módulos
+## 5. Matriz de Contrato de Assets (Para Criação no Outro Chat)
 
-### 3.1. `ChunkManager.js` (Streaming & Desempenho)
-* **Tamanho do Chunk:** $960 \times 540\text{px}$ (30 colunas $\times$ 17 linhas de tiles de $32\text{px}$).
-* **Janela Ativa de Memória:** Mantém sempre **3 chunks ativos** simultaneamente:
-  - `Chunk Anterior` (saindo pelo lado esquerdo da tela)
-  - `Chunk Atual` (centro da câmera)
-  - `Chunk Próximo` (sendo gerado à frente do campo de visão)
-* **Descarte e Coleta:** Quando o jogador se afasta mais de $1200\text{px}$ de um chunk passado, ele é reciclado na memória (Object Pooling), garantindo consumo de RAM estável (< 40 MB) mesmo após horas de corrida ininterrupta.
+Esta é a lista exata que você pode levar para o outro chat para gerar os assets dos dois andares:
 
----
+### A. Superfície e Terreno Sólido (`assets/tiles/surface/`)
+*Grid: **32 × 32 px**.*
 
-### 3.2. `RhythmPlanner.js` (Cálculo de Saltos e Parábolas)
-Baseado no modelo de Gillian Smith (`platformer-gen-2D`), o planejador define o terreno a partir de **frases de ritmo**:
-* **Constantes Físicas do Herói:**
-  - Velocidade horizontal: $V_x = 220\text{px/s}$
-  - Força de salto: $V_y = -490\text{px/s}$
-  - Gravidade: $g = 1050\text{px/s}^2$
-  - Tempo de voo do salto máximo: $t = 2 \cdot |V_y| / g \approx 0.93\text{s}$
-  - **Alcance Horizontal Máximo sem Bigorna:** $X_{\text{max}} = V_x \cdot t \approx 205\text{px}$ (~6.4 tiles).
-  - **Alcance com Salto Duplo de Bigorna:** $X_{\text{max}} \approx 360\text{px}$ (~11 tiles).
-* **Regra de Geração:** A largura de qualquer abismo gerado é limitada a no máximo 85% do alcance atual do jogador, garantindo folga para imprecisões no tempo de reação humano.
-* **Orbes-Guia de Salto:** Nos saltos de ritmo moderado e alto, um orbe magnético (*Soul Orb*) é colocado exatamente no ápice da parábola ($Y_{\text{pico}}$), fornecendo feedback visual do arco perfeito.
+| Slot | Nome do Arquivo | Função Visual |
+| :--- | :--- | :--- |
+| **Chão Grama/Pedra** | `tile_surface_top.png` | Superfície firme por onde o herói corre na superfície. |
+| **Subsolo da Superfície** | `tile_surface_sub.png` | Terra/pedra logo abaixo da grama (o teto do subterrâneo). |
+| **Borda de Fenda Esquerda** | `tile_pit_edge_left.png` | Quina esquerda arredondada onde o chão da superfície abre a fenda. |
+| **Borda de Fenda Direita** | `tile_pit_edge_right.png` | Quina direita arredondada da fenda. |
 
 ---
 
-### 3.3. `BiomeRules.js` (Escalada de Perigo em 4 Faixas)
+### B. Subterrâneo & Rotas de Retorno (`assets/tiles/cavern/`)
+*Grid: **32 × 32 px**.*
 
-| Faixa de Metros | Estado do Céu / Iluminação | Tipo de Plataformas | Inimigos Presentes | Mecânica Chave |
-| :--- | :--- | :--- | :--- | :--- |
-| **0 a 50m** *(Início)* | Crepúsculo Azul Noturno | Solo de pedra contínuo, degraus de 1 a 2 blocos | Monstrenga (baixa velocidade) | Tutorial de atração/repulsão da bigorna |
-| **50 a 120m** *(Catacumbas)* | Noite Escura, Neblina | Abismos de 3 a 5 blocos, vigas de metal magnético | Monstrenga + Null (Dark Enemy) | Escalar plataformas no ar pisando na bigorna |
-| **120 a 200m** *(Abismo das Almas)* | Céu Carmesim Sangrando | Plataformas flutuantes estreitas (2 a 3 blocos) | Null ágil + DevilBats em rasante | Arremesso de bigorna para destruir morcegos |
-| **200m+** *(Lua Vermelha Extrema)* | Lua Vermelha Eclipse Total | Plataformas magnéticas instáveis, espinhos no fundo | Horda Red Frenzy + DevilBats contínuos | Ativação do Especial "Olha o Gás!" para limpar a tela |
-
----
-
-### 3.4. `EntitySpawner.js` (Distribuição de Objetos)
-* **Santuários de Descanso (Rest Areas):** Gerados a cada $150\text{m} \pm 20\text{m}$.
-  - Sempre possuem uma plataforma segura de no mínimo 6 blocos de largura.
-  - Nenhum inimigo spawna a menos de $150\text{px}$ do Santuário.
-  - Ao passar pelo Santuário, o jogador recupera vida e define o novo ponto de retorno do Recall [Q].
-* **Altares da Fortuna:** Gerados uma vez a cada $180\text{m}$ (oferecem modificadores de Sorte ou Revés).
-* **Botijões de Gás:** Posicionados em áreas de alta densidade de monstros para incentivar a jogada estratégica de explosão com proteção da bigorna.
+| Slot | Nome do Arquivo | Função Visual |
+| :--- | :--- | :--- |
+| **Parede de Caverna** | `tile_cavern_wall.png` | Paredes rochosas escuras do subterrâneo. |
+| **Plataforma de Caverna** | `tile_cavern_platform.png` | Plataformas suspensas para pular e subir de volta. |
+| **Viga de Ferro Vertical** | `tile_iron_pillar.png` | Vigas magnéticas metálicas usadas para atração com a bigorna e escalada. |
+| **Estalactite de Teto** | `deco_stalactite.png` | Detalhe decorativo pendurado no teto da caverna (`32 × 48 px`). |
 
 ---
 
-## 4. Matriz de Contrato de Assets (Para Criação no Outro Chat)
+### C. Hazards Mortais (`assets/tiles/hazards/`)
+*Grid: **32 × 32 px** (Tileable).*
 
-Para o gerador desenhar o mundo perfeitamente no Canvas semântico, os assets devem seguir este mapeamento:
-
-```
-assets/
-├── tiles/
-│   ├── tile_stone_top.png        # 32x32 - Superfície caminhável de pedra
-│   ├── tile_stone_mid.png        # 32x32 - Miolo sólido de pedra
-│   ├── tile_stone_left.png       # 32x32 - Borda esquerda sobre o abismo
-│   ├── tile_stone_right.png      # 32x32 - Borda direita sobre o abismo
-│   ├── tile_metal_beam.png       # 32x32 - Viga metálica condutora (magnética)
-│   └── tile_spikes.png           # 32x32 - Espinhos mortais no fundo
-├── environment/
-│   ├── sanctuary_pillar.png      # 48x80 - Pilar sagrado de checkpoint/cura
-│   ├── crystal_active.png        # 24x24 - Luz mágica verde/azul do santuário
-│   ├── fortune_altar.png         # 48x64 - Altar de Sorte ou Revés
-│   └── sky_gradient.png          # 960x540 - Céu noturno dinâmico
-├── collectibles/
-│   └── soul_orb.png              # 16x16 - Orbe magnético guia de parábolas
-└── enemies/
-    ├── monstrenga/               # Já integrado (7 frames)
-    ├── null/                     # Já integrado (7 frames)
-    └── red/                      # Já integrado (7 frames)
-```
+| Slot | Nome do Arquivo | Função no Jogo |
+| :--- | :--- | :--- |
+| **Lava Borbulhante** | `tile_lava_strip.png` | Superfície de lava incandescente animada (2 a 4 frames). Causa dano massivo por segundo. |
+| **Miolo de Lava** | `tile_lava_deep.png` | Bloco sólido vermelho/laranja para preencher poços fundos de magma. |
+| **Espinhos de Aço** | `tile_spikes.png` | Espinhos de ferro forjado apontados para cima. Morte instantânea ao tocar. |
 
 ---
 
-## 5. Próximos Passos (Transição sem Implementação Imediata)
+### D. Cenário, Céu e Coletáveis
+* **Céu Noturno / Lua Vermelha:** `sky_gradient.png` e `moon_blood.png` visíveis apenas no andar superior.
+* **Fundo de Caverna Escura:** Parallax sutil de rochas sombrias para o andar inferior.
+* **Santuários de Descanso:** Localizados na superfície a cada 150m, e raros altares escondidos no subterrâneo.
+* **Inimigos:** Monstrenga (superfície e caverna alta), Dark Enemy (fundo do subterrâneo), DevilBats (superfície na Lua Vermelha).
 
-1. Você pode usar a Seção 4 como guia exato no seu outro chat para desenhar e exportar os tiles e cenários.
-2. Quando os arquivos estiverem prontos e salvos nas pastas, faremos a integração modular via `writing-plans` e TDD sem quebrar nada do gameplay existente.
+---
+
+## 6. Próximos Passos
+
+1. Leve a **Seção 5** ao seu outro chat para gerar os tiles de superfície, caverna, lava e espinhos.
+2. Quando os arquivos estiverem prontos, implementaremos o gerador bi-nível modular com segurança através de TDD.
