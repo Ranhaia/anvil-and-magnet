@@ -68,11 +68,15 @@ class Game {
       this.openFortuneModal();
     };
 
+    // FPS Capping (Padrão: 24 FPS para visual cinematográfico/arcade retrô)
+    this.targetFps = 24;
+    this.fpsInterval = 1000 / this.targetFps;
+    this.lastFrameTime = performance.now();
+
     this.setupListeners();
     this.highScoreReadout.textContent = this.highScore;
 
     // Start Loop
-    this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
   }
 
@@ -108,6 +112,8 @@ class Game {
         } else if (e.code === "Digit3") {
           this.anvil.setType("yoyo");
           sound.playMetalClang(1.0);
+        } else if (e.code === "KeyF") {
+          this.toggleFps();
         }
       }
     });
@@ -150,6 +156,14 @@ class Game {
       this.restartGame();
     });
 
+    const fpsBtn = document.getElementById("fps-btn");
+    if (fpsBtn) {
+      fpsBtn.textContent = `🎞️ FPS: ${this.targetFps}`;
+      fpsBtn.addEventListener("click", () => {
+        this.toggleFps();
+      });
+    }
+
     document.getElementById("sound-btn").addEventListener("click", () => {
       sound.init();
       const muted = sound.toggleMute();
@@ -163,6 +177,22 @@ class Game {
         document.exitFullscreen().catch(() => {});
       }
     });
+  }
+
+  toggleFps() {
+    if (this.targetFps === 24) {
+      this.targetFps = 60;
+    } else if (this.targetFps === 60) {
+      this.targetFps = 30;
+    } else {
+      this.targetFps = 24;
+    }
+    this.fpsInterval = 1000 / this.targetFps;
+    this.lastFrameTime = performance.now();
+    const fpsBtn = document.getElementById("fps-btn");
+    if (fpsBtn) {
+      fpsBtn.textContent = `🎞️ FPS: ${this.targetFps}`;
+    }
   }
 
   startGame() {
@@ -240,8 +270,18 @@ class Game {
   }
 
   loop(timestamp) {
-    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
-    this.lastTime = timestamp;
+    requestAnimationFrame((t) => this.loop(t));
+
+    const elapsed = timestamp - this.lastFrameTime;
+    if (elapsed < this.fpsInterval) {
+      return;
+    }
+
+    // Compensate for drift
+    this.lastFrameTime = timestamp - (elapsed % this.fpsInterval);
+
+    // Dynamic dt based on elapsed time capped for stable physics
+    const dt = Math.min(elapsed / 1000, 0.08);
     this.time += dt;
 
     if (this.state === "playing") {
@@ -249,7 +289,6 @@ class Game {
     }
 
     this.render();
-    requestAnimationFrame((t) => this.loop(t));
   }
 
   update(dt) {
