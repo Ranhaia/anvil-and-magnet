@@ -40,15 +40,23 @@ export class Player {
     this.idleImg = new Image();
     this.idleImg.src = "assets/hero/Sprite_asset_12.png";
 
+    this.jumpImg = new Image();
+    this.jumpImg.src = "assets/hero/Sprite_asset_13.png";
+
     this.walkFrames = [];
     const walkNames = [
+      "Sprite_asset_9.png",
+      "Sprite_asset_10.png",
+      "Sprite_asset_11.png",
       "Sprite_asset_14.png",
       "Sprite_asset_15.png",
-      "Sprite_asset_13.png",
       "Sprite_asset_18.png",
       "Sprite_asset_19.png",
+      "Sprite_asset_20.png",
+      "Sprite_asset_21.png",
       "Sprite_asset_17.png",
-      "Sprite_asset_21.png"
+      "Sprite_asset_22.png",
+      "Sprite_asset_23.png"
     ];
     walkNames.forEach(fn => {
       const im = new Image();
@@ -290,7 +298,9 @@ export class Player {
 
     // Determine current sprite frame
     let frame = this.idleImg;
-    if (this.vx !== 0 && this.walkFrames.length > 0) {
+    if (!this.isGrounded) {
+      frame = this.jumpImg;
+    } else if (this.vx !== 0 && this.walkFrames.length > 0) {
       const idx = Math.floor(this.animTime) % this.walkFrames.length;
       frame = this.walkFrames[idx];
     }

@@ -5,14 +5,17 @@ class Enemy {
   constructor(x, y, levelMultiplier = 1.0) {
     this.x = x;
     this.y = y;
-    this.w = 32;
-    this.h = 42;
+    this.w = 34;
+    this.h = 44;
     this.vx = (Math.random() > 0.5 ? 1 : -1) * (110 * levelMultiplier);
     this.vy = 0;
+    this.facing = this.vx >= 0 ? 1 : -1;
     this.isGrounded = false;
     this.jumpTimer = Math.random() * 3 + 2;
     this.health = 1;
     this.levelMultiplier = levelMultiplier;
+    this.type = levelMultiplier > 1.25 ? "null" : "monstrenga";
+    this.animTime = Math.random() * 10;
   }
 
   update(platforms, dt) {
@@ -29,6 +32,11 @@ class Enemy {
 
     // Move X
     this.x += this.vx * dt;
+    if (Math.abs(this.vx) > 5) {
+      this.facing = this.vx > 0 ? 1 : -1;
+      this.animTime += dt * 10;
+    }
+
     let box = { x: this.x, y: this.y, w: this.w, h: this.h };
     for (const p of platforms) {
       if (Physics.checkAABB(box, p)) {
@@ -62,33 +70,39 @@ class Enemy {
     }
   }
 
-  draw(ctx, camera) {
+  draw(ctx, camera, isBloodMoon, framesMap) {
     const sx = this.x - camera.x;
     const sy = this.y - camera.y;
 
+    let frames = framesMap ? framesMap.monstrenga : null;
+    if (isBloodMoon && framesMap) {
+      frames = framesMap.red;
+    } else if (this.type === "null" && framesMap) {
+      frames = framesMap.null;
+    }
+
     ctx.save();
-    // Monster Body
-    ctx.fillStyle = this.levelMultiplier > 1.3 ? "#d50000" : "#b71c1c";
-    ctx.fillRect(sx, sy, this.w, this.h);
+    ctx.translate(sx + this.w / 2, sy + this.h / 2);
+    ctx.scale(this.facing, 1);
 
-    // Horns / Spikes
-    ctx.fillStyle = "#212121";
-    ctx.beginPath();
-    ctx.moveTo(sx + 4, sy);
-    ctx.lineTo(sx + 10, sy - 8);
-    ctx.lineTo(sx + 14, sy);
-    ctx.fill();
+    if (frames && frames.length > 0) {
+      const idx = Math.floor(this.animTime) % frames.length;
+      const frame = frames[idx];
+      if (frame && frame.complete && frame.naturalWidth > 0) {
+        ctx.drawImage(frame, -24, -28, 48, 56);
+        ctx.restore();
+        return;
+      }
+    }
 
-    ctx.beginPath();
-    ctx.moveTo(sx + 18, sy);
-    ctx.lineTo(sx + 22, sy - 8);
-    ctx.lineTo(sx + 28, sy);
-    ctx.fill();
+    // Fallback Monster Shape
+    ctx.fillStyle = isBloodMoon ? "#d50000" : (this.type === "null" ? "#212121" : "#8e24aa");
+    ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
 
     // Glowing Eyes
-    ctx.fillStyle = "#ffd600";
-    ctx.fillRect(sx + (this.vx > 0 ? 18 : 6), sy + 12, 6, 6);
-    ctx.fillRect(sx + (this.vx > 0 ? 24 : 12), sy + 12, 4, 6);
+    ctx.fillStyle = isBloodMoon ? "#ff1744" : "#ffd600";
+    ctx.fillRect(4, -8, 6, 6);
+    ctx.fillRect(12, -8, 4, 6);
     ctx.restore();
   }
 }
@@ -98,6 +112,49 @@ export class EnemyManager {
     this.enemies = [];
     this.goreParticles = [];
     this.spawnTimer = 0;
+
+    // Preload monster sprite frames
+    this.frames = {
+      monstrenga: [
+        "Sprite_asset_56.png",
+        "Sprite_asset_34.png",
+        "Sprite_asset_48.png",
+        "Sprite_asset_54.png",
+        "Sprite_asset_36.png",
+        "Sprite_asset_40.png",
+        "Sprite_asset_41.png"
+      ].map(fn => {
+        const img = new Image();
+        img.src = `assets/enemies/monstrenga/${fn}`;
+        return img;
+      }),
+      null: [
+        "Sprite_asset_44.png",
+        "Sprite_asset_27.png",
+        "Sprite_asset_46.png",
+        "Sprite_asset_58.png",
+        "Sprite_asset_63.png",
+        "Sprite_asset_35.png",
+        "Sprite_asset_42.png"
+      ].map(fn => {
+        const img = new Image();
+        img.src = `assets/enemies/null/${fn}`;
+        return img;
+      }),
+      red: [
+        "Sprite_asset_56.png",
+        "Sprite_asset_34.png",
+        "Sprite_asset_48.png",
+        "Sprite_asset_54.png",
+        "Sprite_asset_36.png",
+        "Sprite_asset_40.png",
+        "Sprite_asset_41.png"
+      ].map(fn => {
+        const img = new Image();
+        img.src = `assets/enemies/red/${fn}`;
+        return img;
+      })
+    };
   }
 
   spawnInitialEnemies() {
@@ -187,9 +244,9 @@ export class EnemyManager {
     return killsThisFrame;
   }
 
-  draw(ctx, camera) {
-    // Draw enemies
-    this.enemies.forEach(e => e.draw(ctx, camera));
+  draw(ctx, camera, isBloodMoon = false) {
+    // Draw enemies with animated sprite frames
+    this.enemies.forEach(e => e.draw(ctx, camera, isBloodMoon, this.frames));
 
     // Draw gore
     ctx.save();

@@ -359,7 +359,7 @@ class Game {
     this.map.draw(this.ctx, this.camera, this.time);
 
     // 3. Draw Enemies
-    this.enemyManager.draw(this.ctx, this.camera);
+    this.enemyManager.draw(this.ctx, this.camera, this.bloodMoon.isActive);
 
     // 4. Draw Gas Tank Special
     this.gasSpecial.draw(this.ctx, this.camera);
