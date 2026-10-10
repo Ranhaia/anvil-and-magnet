@@ -3,7 +3,10 @@ class SoundSynthesizer {
   constructor() {
     this.ctx = null;
     this.muted = false;
-    this.initialized = false;
+    this.currentTrack = "menu";
+    this.bgmMenu = null;
+    this.bgmGameplay = null;
+    this.sfxSmash = null;
   }
 
   init() {
@@ -12,13 +15,63 @@ class SoundSynthesizer {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioContext();
       this.initialized = true;
+
+      // Audio Elements for Original Soundtracks
+      this.bgmMenu = new Audio("assets/audio/jhou_menu.ogg");
+      this.bgmMenu.loop = true;
+      this.bgmMenu.volume = 0.45;
+
+      this.bgmGameplay = new Audio("assets/audio/jhontrilha.ogg");
+      this.bgmGameplay.loop = true;
+      this.bgmGameplay.volume = 0.5;
+
+      this.sfxSmash = new Audio("assets/audio/smash.ogg");
+      this.sfxSmash.volume = 0.7;
     } catch (e) {
       console.warn("Web Audio not supported:", e);
     }
   }
 
+  playBgmMenu() {
+    this.init();
+    this.currentTrack = "menu";
+    if (this.muted) return;
+    this.stopBgmGameplay();
+    if (this.bgmMenu) {
+      this.bgmMenu.play().catch(() => {});
+    }
+  }
+
+  playBgmGameplay() {
+    this.init();
+    this.currentTrack = "gameplay";
+    if (this.muted) return;
+    this.stopBgmMenu();
+    if (this.bgmGameplay) {
+      this.bgmGameplay.play().catch(() => {});
+    }
+  }
+
+  stopBgmMenu() {
+    if (this.bgmMenu) this.bgmMenu.pause();
+  }
+
+  stopBgmGameplay() {
+    if (this.bgmGameplay) this.bgmGameplay.pause();
+  }
+
   toggleMute() {
     this.muted = !this.muted;
+    if (this.muted) {
+      this.stopBgmMenu();
+      this.stopBgmGameplay();
+    } else {
+      if (this.currentTrack === "gameplay") {
+        this.playBgmGameplay();
+      } else {
+        this.playBgmMenu();
+      }
+    }
     return this.muted;
   }
 

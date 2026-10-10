@@ -14,17 +14,11 @@ export class Magnetism {
 
     const dx = aCenter.x - pCenter.x;
     const dy = aCenter.y - pCenter.y;
-    const distance = Math.hypot(dx, dy);
+    const distance = Math.max(1, Math.hypot(dx, dy));
 
-    // Generous magnetic range (850 pixels); PULL can reach anywhere on the active screen
-    const maxRange = isPull ? 1200 : 850;
-    if (distance > maxRange || distance < 4) {
-      return { inRange: false, distance, pCenter, aCenter };
-    }
-
-    // High responsive strength curve: minimum 0.35 even at range, peaking at 1.0
-    const normalizedDist = Math.min(1.0, distance / maxRange);
-    const strength = Math.max(0.35, Math.pow(1.0 - normalizedDist * 0.75, 0.75));
+    // The anvil and player are linked on screen — always active!
+    const normalizedDist = Math.min(1.0, distance / 960);
+    const strength = Math.max(0.4, Math.pow(1.0 - normalizedDist * 0.6, 0.75));
 
     // Normalized unit vector from Player to Anvil
     const dirToAnvilX = dx / distance;

@@ -2,13 +2,13 @@ import { Physics } from "./physics.js";
 import { sound } from "./audio.js";
 
 export class Player {
-  constructor(spawnX = 250, spawnY = 390) {
+  constructor(spawnX = 250, spawnY = 335) {
     this.x = spawnX;
     this.y = spawnY;
     this.vx = 0;
     this.vy = 0;
-    this.w = 34;
-    this.h = 52;
+    this.w = 42;
+    this.h = 65;
 
     this.health = 100;
     this.maxHealth = 100;
@@ -21,6 +21,7 @@ export class Player {
     
     // Upgrades & Anvil Jump
     this.hasDoubleJump = false;
+    this.airJumpUsed = false;
     this.hasHoverboard = false;
     this.isHovering = false;
     this.hoverTime = 0;
@@ -36,33 +37,25 @@ export class Player {
     this.animTime = 0;
     this.invulnerableTimer = 0;
 
-    // Load sprite frames
+    // Load new calibrated hero sprites (48 x 64 px)
     this.idleImg = new Image();
-    this.idleImg.src = "assets/hero/Sprite_asset_12.png";
+    this.idleImg.src = "assets/hero/hero_idle.png";
 
     this.jumpImg = new Image();
-    this.jumpImg.src = "assets/hero/Sprite_asset_13.png";
+    this.jumpImg.src = "assets/hero/hero_jump.png";
 
-    this.walkFrames = [];
-    const walkNames = [
-      "Sprite_asset_9.png",
-      "Sprite_asset_10.png",
-      "Sprite_asset_11.png",
-      "Sprite_asset_14.png",
-      "Sprite_asset_15.png",
-      "Sprite_asset_18.png",
-      "Sprite_asset_19.png",
-      "Sprite_asset_20.png",
-      "Sprite_asset_21.png",
-      "Sprite_asset_17.png",
-      "Sprite_asset_22.png",
-      "Sprite_asset_23.png"
-    ];
-    walkNames.forEach(fn => {
+    this.fallImg = new Image();
+    this.fallImg.src = "assets/hero/hero_fall_fast.png";
+
+    this.anvilRideImg = new Image();
+    this.anvilRideImg.src = "assets/hero/hero_anvil_ride.png";
+
+    this.runFrames = [];
+    for (let i = 0; i < 8; i++) {
       const im = new Image();
-      im.src = `assets/hero/${fn}`;
-      this.walkFrames.push(im);
-    });
+      im.src = `assets/hero/hero_run_${i}.png`;
+      this.runFrames.push(im);
+    }
   }
 
   takeDamage(amount) {
@@ -99,8 +92,8 @@ export class Player {
     const aMidX = anvil.x + anvil.w / 2;
     const footY = this.y + this.h;
 
-    // Horizontal overlap or proximity
-    const hOverlap = Math.abs(aMidX - pMidX) <= 42;
+    // Horizontal overlap or proximity (calibrated for 25% larger size)
+    const hOverlap = Math.abs(aMidX - pMidX) <= 52;
 
     // Vertical proximity to feet: top of anvil between 20px above foot to 55px below foot
     const footDist = anvil.y - footY;
@@ -112,7 +105,7 @@ export class Player {
     return (hOverlap && vNearFoot) || isLockedUnderFeet;
   }
 
-  update(keys, platforms, anvil, isPulling, dt) {
+  update(keys, platforms, anvil, isPulling, dt, hazards = []) {
     if (this.invulnerableTimer > 0) {
       this.invulnerableTimer -= dt;
     }
@@ -194,6 +187,14 @@ export class Player {
         sound.playJump();
         sound.playMetalClang(1.4);
         anvil.spawnSparks(this.x + this.w / 2, this.y + this.h);
+      } else if (!this.isGrounded && this.hasDoubleJump && !this.airJumpUsed) {
+        // UPGRADE: Pulo Duplo Livre no Ar
+        this.vy = -580;
+        this.coyoteTime = 0;
+        this.jumpBuffer = 0;
+        this.airJumpUsed = true;
+        this.doubleJumpEffectTimer = 0.35;
+        sound.playJump();
       }
     }
 
@@ -223,6 +224,7 @@ export class Player {
           this.y = p.y - this.h;
           this.vy = 0;
           this.isGrounded = true;
+          this.airJumpUsed = false;
         } else if (this.vy < 0) {
           this.y = p.y + p.h;
           this.vy = 0;
@@ -241,13 +243,26 @@ export class Player {
         this.y = anvilTop - this.h;
         this.vy = Math.max(0, anvil.vy);
         this.isGrounded = true;
+        this.airJumpUsed = false;
         this.coyoteTime = 0.12;
       }
     }
 
-    // Kill plane safeguard (if falls below screen abyss)
-    if (this.y > 750) {
-      this.takeDamage(40);
+    // 4. Hazard (Spikes/Lava) Collision
+    if (hazards && hazards.length > 0 && this.invulnerableTimer <= 0) {
+      for (const h of hazards) {
+        if (Physics.checkAABB(box, h)) {
+          this.takeDamage(30);
+          this.vy = -440; // knockback bounce
+          sound.playMetalClang(1.5);
+          break;
+        }
+      }
+    }
+
+    // 5. True bottomless abyss safeguard (only deep fatal fall)
+    if (this.y > 960) {
+      this.takeDamage(35);
       this.x = this.currentSanctuary.x;
       this.y = this.currentSanctuary.y;
       this.vy = 0;
@@ -296,21 +311,24 @@ export class Player {
       ctx.stroke();
     }
 
-    // Determine current sprite frame
+    // Determine current sprite frame from calibrated 48x64 hero sprites
     let frame = this.idleImg;
-    if (!this.isGrounded) {
-      frame = this.jumpImg;
-    } else if (this.vx !== 0 && this.walkFrames.length > 0) {
-      const idx = Math.floor(this.animTime) % this.walkFrames.length;
-      frame = this.walkFrames[idx];
+    if (this.anvilAtFeetReady) {
+      frame = this.anvilRideImg;
+    } else if (!this.isGrounded) {
+      frame = this.vy < 0 ? this.jumpImg : this.fallImg;
+    } else if (Math.abs(this.vx) > 5 && this.runFrames.length > 0) {
+      const idx = Math.floor(this.animTime) % this.runFrames.length;
+      frame = this.runFrames[idx];
     }
 
-    // Render Hero with Direction Mirroring
+    // Render Hero with Direction Mirroring (48 x 64 px)
     ctx.translate(screenX + this.w / 2, screenY + this.h / 2);
     ctx.scale(this.facing, 1);
 
     if (frame && frame.complete && frame.naturalWidth > 0) {
-      ctx.drawImage(frame, -22, -28, 44, 56);
+      // 25% larger sprite scale: 60 x 80 px
+      ctx.drawImage(frame, -30, -40, 60, 80);
     } else {
       // Fallback Hero Rectangle
       ctx.fillStyle = "#00b0ff";

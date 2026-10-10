@@ -158,11 +158,10 @@ export class EnemyManager {
   }
 
   spawnInitialEnemies() {
-    this.enemies.push(new Enemy(600, 410, 1.0));
-    this.enemies.push(new Enemy(1100, 410, 1.2));
-    this.enemies.push(new Enemy(1500, 410, 1.4));
-    this.enemies.push(new Enemy(-500, 410, 1.2));
-    this.enemies.push(new Enemy(-1400, 410, 1.5));
+    // Only spawn well ahead of opening screen (camera starts around x ≈ -230..730)
+    this.enemies.push(new Enemy(980, 356, 1.0));
+    this.enemies.push(new Enemy(1360, 356, 1.2));
+    this.enemies.push(new Enemy(1820, 356, 1.4));
   }
 
   spawnGore(x, y) {
@@ -180,20 +179,30 @@ export class EnemyManager {
     }
   }
 
-  update(player, anvil, platforms, distanceMeters, isBloodMoon, dt) {
+  update(player, anvil, platforms, distanceMeters, isBloodMoon, dt, camera = null) {
     // 1. Spawning scaled by distance and Blood Moon
     this.spawnTimer += dt;
-    const baseSpawnInterval = isBloodMoon ? 1.8 : 4.0;
+    const baseSpawnInterval = isBloodMoon ? 1.8 : 3.8;
     const distanceScale = Math.max(0.4, 1.0 - (distanceMeters / 150) * 0.4);
     const targetInterval = baseSpawnInterval * distanceScale;
 
-    if (this.spawnTimer >= targetInterval && this.enemies.length < 16) {
+    if (this.spawnTimer >= targetInterval && this.enemies.length < 14) {
       this.spawnTimer = 0;
-      // Spawn just outside camera view
-      const spawnSide = Math.random() > 0.5 ? 1 : -1;
-      const spawnX = player.x + spawnSide * (550 + Math.random() * 150);
+      // Guaranteed off-screen spawning: always at least 120px past right edge of screen
+      const minOffScreenX = camera ? camera.x + 960 + 120 : player.x + 750;
+      const spawnX = minOffScreenX + Math.random() * 240;
+
+      // Align spawn height to underlying platform if available
+      let spawnY = 356;
+      for (const p of platforms) {
+        if (p.type === "ground" && spawnX >= p.x && spawnX <= p.x + p.w) {
+          spawnY = p.y - 44;
+          break;
+        }
+      }
+
       const mult = 1.0 + (distanceMeters / 100) * 0.3 + (isBloodMoon ? 0.4 : 0);
-      this.enemies.push(new Enemy(spawnX, 380, mult));
+      this.enemies.push(new Enemy(spawnX, spawnY, mult));
     }
 
     // 2. Update existing enemies
@@ -225,8 +234,9 @@ export class EnemyManager {
         player.takeDamage(20);
       }
 
-      // Cull enemies that fall off world
-      if (e.y > 800) {
+      // Cull enemies that fall off world or are left far behind the screen
+      const leftCullBound = camera ? camera.x - 350 : player.x - 650;
+      if (e.y > 850 || e.x < leftCullBound) {
         this.enemies.splice(i, 1);
       }
     }

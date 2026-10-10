@@ -1,0 +1,75 @@
+{
+  "name": "cavern_bioluminescent_pack",
+  "version": "1.0.0",
+  "author": "Antigravity & Ranhaia",
+  "base_resolution": "960x540",
+  "palette": {
+    "dark_bedrock": "#090d20",
+    "blue_marble": "#141b38",
+    "luminous_cyan": "#00e5ff",
+    "moss_teal": "#1de9b6",
+    "amethyst_purple": "#ba68c8"
+  },
+  "platforms": {
+    "cap_left": "assets/cavern/platform_cap_left.png",
+    "middle": "assets/cavern/platform_middle.png",
+    "cap_right": "assets/cavern/platform_cap_right.png",
+    "pillar": "assets/cavern/rock_pillar.png",
+    "stalactite": "assets/cavern/stalactite.png",
+    "dimensions": { "height": 48, "cap_width": 48, "mid_width": 64 }
+  },
+  "animations": {
+    "mushroom": {
+      "frame_count": 8,
+      "width": 64,
+      "height": 64,
+      "recommended_fps": 10,
+      "frames": [
+        "assets/cavern/mushroom_loop_0.png",
+        "assets/cavern/mushroom_loop_1.png",
+        "assets/cavern/mushroom_loop_2.png",
+        "assets/cavern/mushroom_loop_3.png",
+        "assets/cavern/mushroom_loop_4.png",
+        "assets/cavern/mushroom_loop_5.png",
+        "assets/cavern/mushroom_loop_6.png",
+        "assets/cavern/mushroom_loop_7.png"
+      ]
+    },
+    "crystal": {
+      "frame_count": 8,
+      "width": 64,
+      "height": 64,
+      "recommended_fps": 10,
+      "frames": [
+        "assets/cavern/crystal_loop_0.png",
+        "assets/cavern/crystal_loop_1.png",
+        "assets/cavern/crystal_loop_2.png",
+        "assets/cavern/crystal_loop_3.png",
+        "assets/cavern/crystal_loop_4.png",
+        "assets/cavern/crystal_loop_5.png",
+        "assets/cavern/crystal_loop_6.png",
+        "assets/cavern/crystal_loop_7.png"
+      ]
+    },
+    "stalactite_drip": {
+      "frame_count": 8,
+      "width": 32,
+      "height": 80,
+      "recommended_fps": 8,
+      "frames": [
+        "assets/cavern/drip_loop_0.png",
+        "assets/cavern/drip_loop_1.png",
+        "assets/cavern/drip_loop_2.png",
+        "assets/cavern/drip_loop_3.png",
+        "assets/cavern/drip_loop_4.png",
+        "assets/cavern/drip_loop_5.png",
+        "assets/cavern/drip_loop_6.png",
+        "assets/cavern/drip_loop_7.png"
+      ]
+    }
+  },
+  "backgrounds": {
+    "deep": "assets/cavern/cavern_bg_deep.png",
+    "mid_arches": "assets/cavern/cavern_bg_mid_arches.png"
+  }
+}

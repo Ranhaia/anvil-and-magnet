@@ -1,163 +1,297 @@
-// Micro-Metroidvania Map: Interconnected Platforms, Sanctuaries, Barriers & Upgrades
+// Infinite Procedural Bi-Level World Map with Real Tile Rendering
+import { ChunkGenerator, CHUNK_WIDTH } from "./chunks.js";
+import { CollectiblesManager } from "./collectibles.js";
+
 export class GameMap {
   constructor() {
-    this.floorImg = new Image();
-    this.floorImg.src = "assets/floor.png";
-    this.wallImg = new Image();
-    this.wallImg.src = "assets/wall.png";
+    this.chunkGen = new ChunkGenerator();
+    this.collectiblesManager = new CollectiblesManager();
 
-    // Platforms (x, y, w, h, type: 'ground' | 'wall' | 'metal' | 'jump_thru')
-    this.platforms = [
-      // === TEMPLO CENTRAL (Zona Segura / Spawn) ===
-      { x: -200, y: 460, w: 1000, h: 80, type: "ground" },
-      { x: 100, y: 350, w: 200, h: 24, type: "metal" },
-      { x: 450, y: 310, w: 180, h: 24, type: "ground" },
+    // Sprite Cache
+    this.sprites = {
+      stoneTop: this.loadImage("assets/tiles/tile_stone_top.png"),
+      stoneMid: this.loadImage("assets/tiles/tile_stone_mid.png"),
+      stoneLeft: this.loadImage("assets/tiles/tile_stone_left.png"),
+      stoneRight: this.loadImage("assets/tiles/tile_stone_right.png"),
+      stoneBot: this.loadImage("assets/tiles/tile_stone_bot.png"),
+      metalBeam: this.loadImage("assets/tiles/tile_metal_beam.png"),
+      metalPost: this.loadImage("assets/tiles/tile_metal_post.png"),
+      spikes: this.loadImage("assets/tiles/tile_spikes.png"),
+      sanctuaryPillar: this.loadImage("assets/environment/sanctuary_pillar.png"),
+      crystalActive: this.loadImage("assets/environment/crystal_active.png"),
+      fortuneAltar: this.loadImage("assets/environment/fortune_altar.png"),
+      decoPillar: this.loadImage("assets/environment/deco_pillar.png")
+    };
 
-      // Paredes e colunas do templo
-      { x: -220, y: 0, w: 20, h: 540, type: "wall" },
-      { x: 380, y: 220, w: 30, h: 140, type: "metal" },
+    // World State
+    this.chunks = [];
+    this.platforms = [];
+    this.hazards = [];
+    this.collectibles = [];
+    this.sanctuaries = [];
+    this.props = [];
+    this.upgrades = [];
 
-      // === SETOR LESTE: AS CATACUMBAS (Requer Pulo Duplo) ===
-      { x: 800, y: 460, w: 500, h: 80, type: "ground" },
-      { x: 1050, y: 360, w: 160, h: 20, type: "ground" },
-      { x: 1250, y: 270, w: 140, h: 20, type: "metal" },
-      { x: 1450, y: 190, w: 160, h: 20, type: "ground" },
-      { x: 1650, y: 130, w: 220, h: 24, type: "metal" }, // Altar de Salto Duplo!
-      
-      // Chão inferior das Catacumbas
-      { x: 1300, y: 460, w: 900, h: 80, type: "ground" },
-      { x: 1900, y: 340, w: 240, h: 24, type: "metal" }, // Onde fica a Bigorna Titânica!
-      { x: 2200, y: 0, w: 40, h: 540, type: "wall" },
+    this.nextChunkIndex = 0;
+    this.furthestX = -320;
 
-      // === SETOR OESTE: O ABISMO DOS PILARES (Requer Hoverboard / Grappling Hook) ===
-      { x: -700, y: 460, w: 400, h: 80, type: "ground" },
-      // O Abismo entre -700 e -1200 (sem chão!)
-      { x: -950, y: 320, w: 60, h: 24, type: "metal" }, // Pilar magnético no ar
-      { x: -1600, y: 460, w: 500, h: 80, type: "ground" },
-      { x: -1400, y: 300, w: 180, h: 24, type: "metal" }, // Onde fica a Bigorna Yoyo!
-      { x: -1900, y: 460, w: 300, h: 80, type: "ground" },
-      { x: -1920, y: 0, w: 40, h: 540, type: "wall" }
-    ];
+    // Generate Initial World (from X = -320 to X ≈ 1600)
+    for (let i = 0; i < 4; i++) {
+      this.generateNextChunk(0);
+    }
+  }
 
-    // Sanctuaries (Heal & Checkpoints)
-    this.sanctuaries = [
-      { id: "central", x: 250, y: 400, w: 40, h: 60, name: "Templo Central", active: true },
-      { id: "east", x: 1550, y: 400, w: 40, h: 60, name: "Santuário Leste", active: false },
-      { id: "west", x: -1450, y: 400, w: 40, h: 60, name: "Santuário Oeste", active: false }
-    ];
+  loadImage(src) {
+    const img = new Image();
+    img.src = src;
+    return img;
+  }
 
-    // Upgrades no mapa (desbloqueáveis)
-    this.upgrades = [
-      { id: "double_jump", x: 1730, y: 90, w: 32, h: 32, collected: false, name: "Botas de Pulo Duplo" },
-      { id: "titan_anvil", x: 1980, y: 300, w: 40, h: 40, collected: false, name: "Bigorna Titânica" },
-      { id: "yoyo_anvil", x: -1330, y: 260, w: 36, h: 36, collected: false, name: "Bigorna Yoyo" },
-      { id: "hoverboard", x: -620, y: 420, w: 40, h: 20, collected: false, name: "Placa Flutuante" }
-    ];
+  generateNextChunk(distanceMeters = 0) {
+    const chunk = this.chunkGen.generateChunk(this.nextChunkIndex, this.furthestX, distanceMeters);
+    this.chunks.push(chunk);
+
+    // Accumulate colliders, hazards, sanctuaries and props
+    this.platforms.push(...chunk.platforms);
+    this.hazards.push(...chunk.hazards);
+    this.collectibles.push(...chunk.collectibles);
+    this.sanctuaries.push(...chunk.sanctuaries);
+    this.props.push(...chunk.props);
+    if (chunk.upgrades) {
+      this.upgrades.push(...chunk.upgrades);
+    }
+
+    this.nextChunkIndex++;
+    this.furthestX += CHUNK_WIDTH;
   }
 
   getColliders() {
     return this.platforms;
   }
 
-  draw(ctx, camera, time) {
-    // 1. Draw Platforms
-    this.platforms.forEach(p => {
-      const screenX = p.x - camera.x;
-      const screenY = p.y - camera.y;
+  getHazards() {
+    return this.hazards;
+  }
 
-      // Cull offscreen
-      if (screenX + p.w < -50 || screenX > 1010 || screenY + p.h < -50 || screenY > 600) {
+  update(player, dt, time, distanceMeters = 0) {
+    // 1. Procedural Streaming: generate chunks ahead
+    if (this.furthestX < player.x + 1600) {
+      this.generateNextChunk(distanceMeters);
+    }
+
+    // 2. Prune old platforms far behind the player (prevent memory growth)
+    const pruneBoundaryX = player.x - 1400;
+    if (this.platforms.length > 80 && this.platforms[0].x + this.platforms[0].w < pruneBoundaryX) {
+      this.platforms = this.platforms.filter(p => p.x + p.w >= pruneBoundaryX);
+      this.hazards = this.hazards.filter(h => h.x + h.w >= pruneBoundaryX);
+      this.collectibles = this.collectibles.filter(c => c.x >= pruneBoundaryX);
+      this.props = this.props.filter(pr => pr.x >= pruneBoundaryX);
+      this.upgrades = this.upgrades.filter(u => u.x >= pruneBoundaryX);
+    }
+
+    // 3. Update Animated Collectibles
+    const loot = this.collectiblesManager.update(this.collectibles, player, dt, time);
+    return loot;
+  }
+
+  draw(ctx, camera, time) {
+    // 1. Draw Platforms (Stone with moss, metal beams, edges)
+    this.platforms.forEach(p => {
+      const screenX = Math.round(p.x - camera.x);
+      const screenY = Math.round(p.y - camera.y);
+
+      // Frustum culling
+      if (screenX + p.w < -64 || screenX > 1024 || screenY + p.h < -64 || screenY > 604) {
         return;
       }
 
       if (p.type === "metal") {
-        ctx.fillStyle = "#37474f";
-        ctx.fillRect(screenX, screenY, p.w, p.h);
+        this.drawMetalPlatform(ctx, p, screenX, screenY);
+      } else {
+        this.drawStonePlatform(ctx, p, screenX, screenY);
+      }
+    });
 
-        // Metallic highlights & rivets
-        ctx.fillStyle = "#78909c";
-        ctx.fillRect(screenX, screenY, p.w, 3);
-        ctx.fillStyle = "#cfd8dc";
-        for (let rx = 10; rx < p.w; rx += 30) {
-          ctx.beginPath();
-          ctx.arc(screenX + rx, screenY + p.h / 2, 2.5, 0, Math.PI * 2);
-          ctx.fill();
+    // 2. Draw Hazards (Spikes)
+    this.hazards.forEach(h => {
+      const screenX = Math.round(h.x - camera.x);
+      const screenY = Math.round(h.y - camera.y);
+
+      if (screenX + h.w < -64 || screenX > 1024) return;
+
+      const spImg = this.sprites.spikes;
+      if (spImg.complete && spImg.naturalWidth > 0) {
+        for (let bx = 0; bx < h.w; bx += 32) {
+          const sliceW = Math.min(32, h.w - bx);
+          ctx.drawImage(spImg, 0, 0, sliceW, 32, screenX + bx, screenY, sliceW, 32);
         }
       } else {
-        // Stone platform with floor texture pattern
-        ctx.fillStyle = "#263238";
-        ctx.fillRect(screenX, screenY, p.w, p.h);
-
-        // Top grass/stone trim
-        ctx.fillStyle = "#455a64";
-        ctx.fillRect(screenX, screenY, p.w, 4);
-
-        // Stone brick seams
-        ctx.strokeStyle = "rgba(0,0,0,0.4)";
-        ctx.lineWidth = 1;
-        for (let bx = 0; bx < p.w; bx += 40) {
-          ctx.strokeRect(screenX + bx, screenY + 4, 40, p.h - 4);
+        // Fallback procedural spikes
+        ctx.fillStyle = "#d50000";
+        for (let bx = 0; bx < h.w; bx += 16) {
+          ctx.beginPath();
+          ctx.moveTo(screenX + bx, screenY + h.h);
+          ctx.lineTo(screenX + bx + 8, screenY);
+          ctx.lineTo(screenX + bx + 16, screenY + h.h);
+          ctx.fill();
         }
       }
     });
 
-    // 2. Draw Sanctuaries
-    this.sanctuaries.forEach(s => {
-      const sx = s.x - camera.x;
-      const sy = s.y - camera.y;
-      const pulse = Math.sin(time * 3) * 0.15 + 0.85;
+    // 3. Draw Background / Foreground Props
+    this.props.forEach(pr => {
+      const screenX = Math.round(pr.x - camera.x);
+      const screenY = Math.round(pr.y - camera.y);
 
-      // Stone Pillar
-      ctx.fillStyle = "#1e2838";
-      ctx.fillRect(sx, sy, s.w, s.h);
+      if (screenX < -100 || screenX > 1060) return;
 
-      // Holy Crystal / Light
-      const crystalColor = s.active ? "#00e676" : "#2979ff";
-      ctx.fillStyle = crystalColor;
-      ctx.beginPath();
-      ctx.arc(sx + s.w / 2, sy + 15, 10 * pulse, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Light beam
-      ctx.fillStyle = s.active ? "rgba(0, 230, 118, 0.15)" : "rgba(41, 121, 255, 0.15)";
-      ctx.fillRect(sx - 10, sy - 80, s.w + 20, s.h + 80);
-
-      // Label
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 10px Outfit, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(s.name, sx + s.w / 2, sy - 10);
+      if (pr.type === "sanctuary_pillar") {
+        const img = this.sprites.sanctuaryPillar;
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, screenX, screenY, 48, 80);
+        }
+      } else if (pr.type === "crystal") {
+        const img = this.sprites.crystalActive;
+        const pulse = 1.0 + Math.sin(time * 4) * 0.12;
+        ctx.save();
+        ctx.shadowColor = "#00e5ff";
+        ctx.shadowBlur = 12 * pulse;
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, screenX, screenY, 24, 24);
+        } else {
+          ctx.fillStyle = "#00e5ff";
+          ctx.beginPath();
+          ctx.arc(screenX + 12, screenY + 12, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      } else if (pr.type === "fortune_altar") {
+        const img = this.sprites.fortuneAltar;
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, screenX, screenY, 48, 64);
+        }
+      } else if (pr.type === "deco_pillar") {
+        const img = this.sprites.decoPillar;
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, screenX, screenY, 32, 96);
+        }
+      }
     });
 
-    // 3. Draw Upgrades
+    // 4. Draw Animated Collectibles
+    this.collectiblesManager.draw(ctx, this.collectibles, camera, time);
+
+    // 5. Draw Roguelite Upgrades
     this.upgrades.forEach(u => {
       if (u.collected) return;
-      const ux = u.x - camera.x;
-      const uy = u.y - camera.y + Math.sin(time * 4) * 6;
+      const ux = Math.round(u.x - camera.x);
+      const uy = Math.round(u.y - camera.y + Math.sin(time * 5 + u.x * 0.05) * 6);
+
+      // Frustum culling
+      if (ux < -50 || ux > 1010 || uy < -50 || uy > 590) return;
 
       ctx.save();
-      // Glowing orb
-      const grad = ctx.createRadialGradient(ux + u.w/2, uy + u.h/2, 2, ux + u.w/2, uy + u.h/2, 24);
-      grad.addColorStop(0, "rgba(255, 214, 0, 0.9)");
-      grad.addColorStop(0.6, "rgba(255, 171, 0, 0.4)");
+      // Glowing radial aura
+      const grad = ctx.createRadialGradient(ux + u.w / 2, uy + u.h / 2, 4, ux + u.w / 2, uy + u.h / 2, 28);
+      grad.addColorStop(0, u.color || "rgba(255, 214, 0, 0.9)");
+      grad.addColorStop(0.5, "rgba(255, 171, 0, 0.35)");
       grad.addColorStop(1, "rgba(255, 171, 0, 0)");
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(ux + u.w/2, uy + u.h/2, 24, 0, Math.PI * 2);
+      ctx.arc(ux + u.w / 2, uy + u.h / 2, 28, 0, Math.PI * 2);
       ctx.fill();
 
-      // Icon core
-      ctx.fillStyle = "#ffd600";
+      // Rotating diamond frame
+      ctx.strokeStyle = u.color || "#ffd600";
+      ctx.lineWidth = 2;
+      ctx.save();
+      ctx.translate(ux + u.w / 2, uy + u.h / 2);
+      ctx.rotate(time * 2.2);
+      ctx.strokeRect(-12, -12, 24, 24);
+      ctx.restore();
+
+      // Core orb
+      ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(ux + u.w/2, uy + u.h/2, 9, 0, Math.PI * 2);
+      ctx.arc(ux + u.w / 2, uy + u.h / 2, 7, 0, Math.PI * 2);
       ctx.fill();
 
-      // Name label
-      ctx.fillStyle = "#ffd600";
-      ctx.font = "bold 10px Outfit, sans-serif";
+      // Name & Icon Tag
+      ctx.fillStyle = u.color || "#ffd600";
+      ctx.font = "bold 11px Outfit, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(u.name, ux + u.w/2, uy - 12);
+      ctx.fillText(`${u.icon || "⭐"} ${u.name}`, ux + u.w / 2, uy - 18);
       ctx.restore();
     });
+  }
+
+  drawStonePlatform(ctx, p, screenX, screenY) {
+    const topImg = this.sprites.stoneTop;
+    const midImg = this.sprites.stoneMid;
+    const leftImg = this.sprites.stoneLeft;
+    const rightImg = this.sprites.stoneRight;
+    const botImg = this.sprites.stoneBot;
+
+    const hasImages = topImg.complete && topImg.naturalWidth > 0;
+
+    if (!hasImages) {
+      // Fallback styling
+      ctx.fillStyle = "#1e2838";
+      ctx.fillRect(screenX, screenY, p.w, p.h);
+      ctx.fillStyle = "#00e5ff";
+      ctx.fillRect(screenX, screenY, p.w, 4);
+      return;
+    }
+
+    const tileSz = 32;
+
+    // Draw Top Layer (Y: 0..32)
+    for (let bx = 0; bx < p.w; bx += tileSz) {
+      const sliceW = Math.min(tileSz, p.w - bx);
+      const isLeft = bx === 0;
+      const isRight = bx + tileSz >= p.w;
+
+      let img = topImg;
+      if (isLeft && leftImg.complete) img = leftImg;
+      else if (isRight && rightImg.complete) img = rightImg;
+
+      ctx.drawImage(img, 0, 0, sliceW, tileSz, screenX + bx, screenY, sliceW, tileSz);
+    }
+
+    // Draw Filler Layers (Y: 32..p.h)
+    for (let by = tileSz; by < p.h; by += tileSz) {
+      const sliceH = Math.min(tileSz, p.h - by);
+      const isBottom = by + tileSz >= p.h;
+
+      for (let bx = 0; bx < p.w; bx += tileSz) {
+        const sliceW = Math.min(tileSz, p.w - bx);
+        const img = isBottom && botImg.complete ? botImg : midImg;
+        ctx.drawImage(img, 0, 0, sliceW, sliceH, screenX + bx, screenY + by, sliceW, sliceH);
+      }
+    }
+  }
+
+  drawMetalPlatform(ctx, p, screenX, screenY) {
+    const beamImg = this.sprites.metalBeam;
+    const postImg = this.sprites.metalPost;
+    const isVertical = p.h > p.w;
+
+    const img = isVertical ? postImg : beamImg;
+    if (img.complete && img.naturalWidth > 0) {
+      const tileSz = 32;
+      for (let by = 0; by < p.h; by += tileSz) {
+        const sliceH = Math.min(tileSz, p.h - by);
+        for (let bx = 0; bx < p.w; bx += tileSz) {
+          const sliceW = Math.min(tileSz, p.w - bx);
+          ctx.drawImage(img, 0, 0, sliceW, sliceH, screenX + bx, screenY + by, sliceW, sliceH);
+        }
+      }
+    } else {
+      // Fallback metal texture
+      ctx.fillStyle = "#37474f";
+      ctx.fillRect(screenX, screenY, p.w, p.h);
+      ctx.fillStyle = "#90a4ae";
+      ctx.fillRect(screenX, screenY, p.w, 3);
+    }
   }
 }

@@ -4,7 +4,11 @@
   "description": "Anvil & Magnet — Micro-Metroidvania Roguelite Arcade Edition",
   "main": "index.html",
   "scripts": {
-    "dev": "npx serve ."
+    "dev": "python server.py",
+    "validate": "node scripts/validate.js",
+    "test": "node scripts/validate.js",
+    "check": "node scripts/validate.js",
+    "ship": "npm run validate && git add -A && git commit -m \"feat: polish gameplay mechanics, mouse gas targeting, upgrades and titan anvil\" && git push"
   },
   "keywords": ["game", "canvas", "roguelite", "pixel-art"],
   "author": "Ranhaia",

@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cavern Asset Studio — React 18 Pro Suite</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-base: #060813;
+      --bg-card: rgba(13, 17, 36, 0.85);
+      --bg-card-hover: rgba(20, 27, 56, 0.95);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-active: #00e5ff;
+      --cyan-primary: #00e5ff;
+      --cyan-glow: rgba(0, 229, 255, 0.35);
+      --magenta-primary: #e040fb;
+      --emerald-primary: #1de9b6;
+      --text-main: #f5f7ff;
+      --text-muted: #8b96ba;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 229, 255, 0.08), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(224, 64, 251, 0.05), transparent);
+    }
+
+    #root {
+      width: 100%;
+      max-width: 1280px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header Bar */
+    .top-header {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #00e5ff, #7c4dff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #03040c;
+      box-shadow: 0 0 16px var(--cyan-glow);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(0, 229, 255, 0.12);
+      color: var(--cyan-primary);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      letter-spacing: 0.5px;
+      margin-left: 8px;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+
+    .btn-header:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-header.primary {
+      background: linear-gradient(135deg, #00e5ff, #00b0ff);
+      color: #040817;
+      border: none;
+      font-weight: 700;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
+    }
+
+    .btn-header.primary:hover {
+      box-shadow: 0 0 26px rgba(0, 229, 255, 0.55);
+    }
+
+    /* Scene Presets Ribbon */
+    .scene-ribbon {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 6px;
+    }
+
+    .ribbon-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 0 12px;
+    }
+
+    .scene-btn {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .scene-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .scene-btn.active {
+      background: rgba(0, 229, 255, 0.12);
+      border-color: rgba(0, 229, 255, 0.4);
+      color: var(--cyan-primary);
+      box-shadow: 0 0 16px rgba(0, 229, 255, 0.15);
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+
+    /* Viewport Card */
+    .viewport-card {
+      background: #020308;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      position: relative;
+    }
+
+    .viewport-canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      display: block;
+      image-rendering: pixelated;
+      cursor: crosshair;
+    }
+
+    .viewport-toolbar {
+      background: rgba(11, 14, 30, 0.95);
+      border-top: 1px solid var(--border-subtle);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .fps-badge {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--emerald-primary);
+      font-weight: 700;
+      background: rgba(29, 233, 182, 0.1);
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(29, 233, 182, 0.25);
+    }
+
+    /* Controls Panel */
+    .panel-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-header {
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 10px;
+    }
+
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-label-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .control-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--cyan-primary);
+      background: rgba(0, 229, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+      background: rgba(6, 8, 20, 0.8);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    select:focus {
+      border-color: var(--cyan-primary);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    input[type="range"] {
+      accent-color: var(--cyan-primary);
+      padding: 0;
+      height: 6px;
+      cursor: pointer;
+    }
+
+    /* Switch Component */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .switch-ui {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .switch-ui::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .switch-input:checked + .switch-ui {
+      background: var(--cyan-primary);
+      box-shadow: 0 0 14px var(--cyan-glow);
+    }
+
+    .switch-input:checked + .switch-ui::after {
+      transform: translateX(20px);
+      background: #020716;
+    }
+
+    .switch-input {
+      display: none;
+    }
+
+    /* Showcase Strip */
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .showcase-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .showcase-card:hover {
+      border-color: rgba(0, 229, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .showcase-preview-frame {
+      width: 100%;
+      height: 110px;
+      background: #030510;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .showcase-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .showcase-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .btn-export-pill {
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: var(--cyan-primary);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-export-pill:hover {
+      background: var(--cyan-primary);
+      color: #040817;
+      box-shadow: 0 0 16px var(--cyan-glow);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0d122b;
+      border: 1px solid var(--cyan-primary);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.8);
+      z-index: 1000;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React 18 + ReactDOM + HTM for modern pure component architecture -->
+  <script type="module">
+    import { createElement, useState, useEffect, useRef } from "https://esm.sh/react@18.2.0";
+    import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
+    import htm from "https://esm.sh/htm";
+    import { CavernAssets } from "./src/cavern-assets.js";
+
+    const html = htm.bind(createElement);
+
+    function AssetStudioApp() {
+      // React State
+      const [scenePreset, setScenePreset] = useState("fungi"); // "fungi" | "geode" | "crypt"
+      const [textureKey, setTextureKey] = useState("blue_marble_tint"); // Mármore Azul como padrão!
+      const [textureAlpha, setTextureAlpha] = useState(0.55);
+      const [roundedRadius, setRoundedRadius] = useState(18); // Pontas arredondadas!
+      const [glowIntensity, setGlowIntensity] = useState(1.3);
+      const [pulseSpeed, setPulseSpeed] = useState(2.8);
+      const [hasTorch, setHasTorch] = useState(true);
+      const [hasPillars, setHasPillars] = useState(true);
+      const [hasSpores, setHasSpores] = useState(true);
+      const [hasDrips, setHasDrips] = useState(true);
+      const [fps, setFps] = useState(60);
+      const [toastMsg, setToastMsg] = useState("");
+
+      const canvasRef = useRef(null);
+      const cavernRef = useRef(null);
+      const mouseRef = useRef({ x: 480, y: 270 });
+
+      // Previews
+      const prevMushroomRef = useRef(null);
+      const prevCrystalRef = useRef(null);
+      const prevLedgeRef = useRef(null);
+      const prevStalactiteRef = useRef(null);
+
+      // Initialize Cavern Assets
+      useEffect(() => {
+        cavernRef.current = new CavernAssets();
+        cavernRef.current.setTexture(textureKey);
+      }, []);
+
+      // Texture key change
+      useEffect(() => {
+        if (cavernRef.current) {
+          cavernRef.current.setTexture(textureKey);
+        }
+      }, [textureKey]);
+
+      const showToast = (msg) => {
+        setToastMsg(msg);
+        setTimeout(() => setToastMsg(""), 3000);
+      };
+
+      // Mouse tracking
+      const handleMouseMove = (e) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        mouseRef.current.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        mouseRef.current.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      };
+
+      // Main Render Loop
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fpsTimer = 0;
+        let dripTimer = 0;
+        let animId;
+
+        const loop = (currentTime) => {
+          const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+          lastTime = currentTime;
+          const time = currentTime / 1000;
+
+          // FPS
+          frameCount++;
+          fpsTimer += dt;
+          if (fpsTimer >= 0.5) {
+            setFps(Math.round(frameCount / fpsTimer));
+            frameCount = 0;
+            fpsTimer = 0;
+          }
+
+          const cavern = cavernRef.current;
+          if (cavern) {
+            cavern.update(dt, 960, 540);
+
+            if (hasDrips) {
+              dripTimer += dt;
+              if (dripTimer > 1.6) {
+                dripTimer = 0;
+                cavern.spawnDrip(260, 100, 440);
+                cavern.spawnDrip(740, 95, 320);
+              }
+            }
+          }
+
+          // RENDER SCENERY
+          renderScene(ctx, time);
+          renderShowcases(time);
+
+          animId = requestAnimationFrame(loop);
+        };
+
+        animId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(animId);
+      }, [scenePreset, textureAlpha, roundedRadius, glowIntensity, pulseSpeed, hasTorch, hasPillars, hasSpores, hasDrips]);
+
+      const renderScene = (ctx, time) => {
+        const cavern = cavernRef.current;
+        if (!cavern) return;
+
+        const opts = {
+          textureAlpha,
+          radius: roundedRadius,
+          glowIntensity,
+          pulseSpeed
+        };
+
+        // --- 1. DEEP CAVERN BACKGROUND GRADIENT ---
+        if (scenePreset === "crypt") {
+          // Crypt palette (Blood / Deep Maroon / Ancient Stone)
+          const grad = ctx.createLinearGradient(0, 0, 0, 540);
+          grad.addColorStop(0, "#08040b");
+          grad.addColorStop(0.5, "#180c1e");
+          grad.addColorStop(1, "#0a050d");
+          ctx.fillStyle = grad;
+        } else if (scenePreset === "geode") {
+          // Geode palette (Deep Royal Violet)
+          const grad = ctx.createLinearGradient(0, 0, 0, 540);
+          grad.addColorStop(0, "#060416");
+          grad.addColorStop(0.5, "#150b33");
+          grad.addColorStop(1, "#07041a");
+          ctx.fillStyle = grad;
+        } else {
+          // Fungi palette (Deep Midnight Indigo & Blue Marble)
+          const grad = ctx.createLinearGradient(0, 0, 0, 540);
+          grad.addColorStop(0, "#050716");
+          grad.addColorStop(0.5, "#0e1533");
+          grad.addColorStop(1, "#060919");
+          ctx.fillStyle = grad;
+        }
+        ctx.fillRect(0, 0, 960, 540);
+
+        // Distant Subterranean Vaults (Backdrop)
+        ctx.fillStyle = "rgba(4, 7, 20, 0.75)";
+        ctx.beginPath();
+        ctx.arc(480, 260, 240, 0, Math.PI * 2);
+        ctx.fill();
+
+        // --- 2. SOLID SUPPORT PILLARS (NO FLOATING VOIDS!) ---
+        if (hasPillars) {
+          // Pillar anchoring left platform to ground
+          cavern.drawRockPillar(ctx, 160, 360, 470, 48, opts);
+          // Massive central column supporting upper ledge
+          cavern.drawRockPillar(ctx, 480, 240, 470, 60, opts);
+          // Right cliff buttress connecting to ceiling & wall
+          cavern.drawRockPillar(ctx, 760, 280, 470, 52, opts);
+          cavern.drawRockPillar(ctx, 320, 55, 240, 38, opts);
+        }
+
+        // --- 3. MASSIVE ENCLOSED CAVERN FRAME (Ceiling, Walls, Bedrock) ---
+        cavern.drawEnclosedCavernFrame(ctx, 960, 540, time, opts);
+
+        // --- 4. TIERED ROCKY SHELVES WITH ROUNDED ENDS ---
+        // Left Platform (curves on both sides)
+        cavern.drawPlatform(ctx, 70, 360, 220, 36, {
+          ...opts,
+          edgeColor: scenePreset === "crypt" ? "#ff5252" : "#1de9b6"
+        });
+
+        // Center High Ledge
+        cavern.drawPlatform(ctx, 360, 240, 240, 34, {
+          ...opts,
+          edgeColor: scenePreset === "geode" ? "#ea80fc" : "#1de9b6"
+        });
+
+        // Right Shelf
+        cavern.drawPlatform(ctx, 640, 300, 230, 36, {
+          ...opts,
+          edgeColor: scenePreset === "crypt" ? "#ffab40" : "#1de9b6"
+        });
+
+        // --- 5. BIOLUMINESCENT FAUNA & MINERALS BASED ON BIOME ---
+        if (scenePreset === "fungi") {
+          // Dominant Mushrooms + Turquoise crystals
+          cavern.drawMushroomCluster(ctx, 130, 360, time, opts);
+          cavern.drawMushroom(ctx, 230, 360, 0.9, time + 1.2, opts);
+          cavern.drawMushroomCluster(ctx, 420, 240, time + 0.6, opts);
+          cavern.drawMushroom(ctx, 520, 240, 1.2, time + 2.0, opts);
+          cavern.drawMushroomCluster(ctx, 710, 300, time + 1.5, opts);
+          cavern.drawMushroom(ctx, 810, 300, 0.8, time + 0.3, opts);
+
+          // Accent crystals on ground
+          cavern.drawCrystalCluster(ctx, 160, 465, 1.2, time, opts);
+          cavern.drawCrystalCluster(ctx, 620, 465, 1.3, time + 1.8, opts);
+        } else if (scenePreset === "geode") {
+          // Massive Amethyst Geode Crystals
+          cavern.drawCrystalCluster(ctx, 120, 360, 1.4, time, opts);
+          cavern.drawCrystalCluster(ctx, 220, 360, 1.1, time + 0.8, opts);
+          cavern.drawCrystalCluster(ctx, 430, 240, 1.6, time + 1.4, opts);
+          cavern.drawCrystalCluster(ctx, 530, 240, 1.2, time + 2.2, opts);
+          cavern.drawCrystalCluster(ctx, 720, 300, 1.5, time + 0.5, opts);
+
+          // Floor Crystals
+          cavern.drawCrystalCluster(ctx, 280, 465, 1.7, time + 1.1, opts);
+          cavern.drawCrystalCluster(ctx, 480, 465, 1.9, time + 2.4, opts);
+          cavern.drawCrystalCluster(ctx, 760, 465, 1.5, time + 0.7, opts);
+        } else {
+          // Crypt: Ancient Runes, Blood Fungi & Embers
+          cavern.drawMushroom(ctx, 150, 360, 1.2, time, { ...opts, glowIntensity: opts.glowIntensity * 1.3 });
+          cavern.drawCrystalCluster(ctx, 470, 240, 1.5, time, opts);
+          cavern.drawMushroomCluster(ctx, 750, 300, time + 1.0, opts);
+          cavern.drawCrystalCluster(ctx, 330, 465, 1.4, time + 2.0, opts);
+        }
+
+        // --- 6. DRIPS ---
+        if (hasDrips) {
+          ctx.fillStyle = scenePreset === "crypt" ? "#ff1744" : "#00e5ff";
+          for (const d of cavern.drips) {
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, 2.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // --- 7. SPORES ---
+        if (hasSpores) {
+          cavern.drawSpores(ctx, time);
+        }
+
+        // --- 8. DYNAMIC TORCH LIGHTING ---
+        if (hasTorch) {
+          cavern.drawTorchLight(ctx, mouseRef.current.x, mouseRef.current.y, 240, 960, 540);
+        }
+      };
+
+      const renderShowcases = (time) => {
+        const cavern = cavernRef.current;
+        if (!cavern) return;
+        const opts = { textureAlpha, radius: roundedRadius, glowIntensity, pulseSpeed };
+
+        // 1. Mushroom
+        const mctx = prevMushroomRef.current?.getContext("2d");
+        if (mctx) {
+          mctx.clearRect(0, 0, 180, 110);
+          mctx.fillStyle = "#050714";
+          mctx.fillRect(0, 0, 180, 110);
+          cavern.drawPlatform(mctx, 15, 82, 150, 28, opts);
+          cavern.drawMushroomCluster(mctx, 90, 82, time, opts);
+        }
+
+        // 2. Crystal
+        const cctx = prevCrystalRef.current?.getContext("2d");
+        if (cctx) {
+          cctx.clearRect(0, 0, 180, 110);
+          cctx.fillStyle = "#050714";
+          cctx.fillRect(0, 0, 180, 110);
+          cavern.drawPlatform(cctx, 15, 82, 150, 28, opts);
+          cavern.drawCrystalCluster(cctx, 90, 82, 1.4, time, opts);
+        }
+
+        // 3. Rounded Ledge
+        const lctx = prevLedgeRef.current?.getContext("2d");
+        if (lctx) {
+          lctx.clearRect(0, 0, 180, 110);
+          lctx.fillStyle = "#050714";
+          lctx.fillRect(0, 0, 180, 110);
+          cavern.drawPlatform(lctx, 20, 36, 140, 46, opts);
+        }
+
+        // 4. Stalactite
+        const sctx = prevStalactiteRef.current?.getContext("2d");
+        if (sctx) {
+          sctx.clearRect(0, 0, 180, 110);
+          sctx.fillStyle = "#050714";
+          sctx.fillRect(0, 0, 180, 110);
+          cavern.drawPlatform(sctx, 15, 0, 150, 20, { ...opts, radius: 0 });
+          cavern.drawStalactite(sctx, 90, 20, 24, 70, true, time);
+        }
+      };
+
+      const captureCanvas = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const a = document.createElement("a");
+        a.download = `cavern_${scenePreset}_${Date.now()}.png`;
+        a.href = canvas.toDataURL("image/png");
+        a.click();
+        showToast("📸 Frame capturado com sucesso em alta resolução!");
+      };
+
+      const exportSprite = (ref, name) => {
+        const c = ref.current;
+        if (!c) return;
+        const a = document.createElement("a");
+        a.download = name;
+        a.href = c.toDataURL("image/png");
+        a.click();
+        showToast(`✨ Asset '${name}' exportado com canal alfa!`);
+      };
+
+      return html`
+        <div style=${{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <!-- Header -->
+          <header className="top-header">
+            <div className="brand-group">
+              <div className="brand-icon">💎</div>
+              <div>
+                <span className="brand-title">Cavern Asset Studio</span>
+                <span className="brand-tag">React 18 Pro</span>
+              </div>
+            </div>
+            <div className="header-nav">
+              <button className="btn-header" onClick=${captureCanvas}>
+                📸 Capturar Frame
+              </button>
+              <a href="index.html" className="btn-header primary">
+                🎮 Abrir no Jogo
+              </a>
+            </div>
+          </header>
+
+          <!-- Scene Presets Ribbon -->
+          <div className="scene-ribbon">
+            <span className="ribbon-label">Cenários:</span>
+            <button 
+              className=${`scene-btn ${scenePreset === 'fungi' ? 'active' : ''}`}
+              onClick=${() => { setScenePreset('fungi'); setTextureKey('blue_marble_tint'); }}
+            >
+              🍄 Caverna dos Cogumelos (Mármore Azul)
+            </button>
+            <button 
+              className=${`scene-btn ${scenePreset === 'geode' ? 'active' : ''}`}
+              onClick=${() => { setScenePreset('geode'); setTextureKey('blue_marble_tint'); }}
+            >
+              💎 Câmara Geodo de Ametista
+            </button>
+            <button 
+              className=${`scene-btn ${scenePreset === 'crypt' ? 'active' : ''}`}
+              onClick=${() => { setScenePreset('crypt'); setTextureKey('granite_tint'); }}
+            >
+              🩸 Catacumbas da Lua Carmim
+            </button>
+          </div>
+
+          <!-- Main Studio Grid -->
+          <div className="main-grid">
+            <!-- Viewport -->
+            <div className="viewport-card">
+              <canvas 
+                ref=${canvasRef}
+                className="viewport-canvas"
+                width="960" 
+                height="540"
+                onMouseMove=${handleMouseMove}
+              />
+              <div className="viewport-toolbar">
+                <span>🔦 Tocha dinâmica segue o cursor · Caverna estruturada sem vazios</span>
+                <span className="fps-badge">${fps} FPS</span>
+              </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div className="panel-card">
+              <div className="panel-header">
+                <span>Controles de Estilo</span>
+                <span className="control-badge">PIXAR 128</span>
+              </div>
+
+              <!-- Texture Selector -->
+              <div className="control-row">
+                <div className="control-label-group">
+                  <span>Textura de Rocha</span>
+                  <span className="control-badge">${textureKey.includes('blue_marble') ? '★ FAVORITO' : ''}</span>
+                </div>
+                <select value=${textureKey} onChange=${(e) => setTextureKey(e.target.value)}>
+                  <option value="blue_marble_tint">Mármore Azul (Tint Caverna) ★</option>
+                  <option value="blue_marble">Mármore Azul (Original)</option>
+                  <option value="granite_tint">Granito Preto (Tint Caverna)</option>
+                  <option value="granite">Granito Bruto</option>
+                  <option value="pebbles_tint">Seixos Subterrâneos</option>
+                  <option value="blue_gravel_tint">Cascalho Mineral</option>
+                </select>
+              </div>
+
+              <!-- Rounded Cap Radius Slider -->
+              <div className="control-row">
+                <div className="control-label-group">
+                  <span>Raio da Ponta Arredondada</span>
+                  <span className="control-badge">${roundedRadius}px</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="6" 
+                  max="28" 
+                  step="1"
+                  value=${roundedRadius} 
+                  onChange=${(e) => setRoundedRadius(Number(e.target.value))} 
+                />
+              </div>
+
+              <!-- Texture Alpha Slider -->
+              <div className="control-row">
+                <div className="control-label-group">
+                  <span>Opacidade da Textura</span>
+                  <span className="control-badge">${Math.round(textureAlpha * 100)}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0.1" 
+                  max="1.0" 
+                  step="0.05"
+                  value=${textureAlpha} 
+                  onChange=${(e) => setTextureAlpha(Number(e.target.value))} 
+                />
+              </div>
+
+              <!-- Glow Bloom Slider -->
+              <div className="control-row">
+                <div className="control-label-group">
+                  <span>Intensidade do Glow (Alfa)</span>
+                  <span className="control-badge">${glowIntensity.toFixed(1)}x</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0.0" 
+                  max="2.5" 
+                  step="0.1"
+                  value=${glowIntensity} 
+                  onChange=${(e) => setGlowIntensity(Number(e.target.value))} 
+                />
+              </div>
+
+              <!-- Toggles -->
+              <label className="switch-row">
+                <span>Pilares de Sustentação</span>
+                <input 
+                  type="checkbox" 
+                  className="switch-input"
+                  checked=${hasPillars} 
+                  onChange=${(e) => setHasPillars(e.target.checked)} 
+                />
+                <div className="switch-ui"></div>
+              </label>
+
+              <label className="switch-row">
+                <span>Lanterna Dinâmica (Mouse)</span>
+                <input 
+                  type="checkbox" 
+                  className="switch-input"
+                  checked=${hasTorch} 
+                  onChange=${(e) => setHasTorch(e.target.checked)} 
+                />
+                <div className="switch-ui"></div>
+              </label>
+
+              <label className="switch-row">
+                <span>Esporos em Suspensão</span>
+                <input 
+                  type="checkbox" 
+                  className="switch-input"
+                  checked=${hasSpores} 
+                  onChange=${(e) => setHasSpores(e.target.checked)} 
+                />
+                <div className="switch-ui"></div>
+              </label>
+
+              <label className="switch-row">
+                <span>Gotas das Estalactites</span>
+                <input 
+                  type="checkbox" 
+                  className="switch-input"
+                  checked=${hasDrips} 
+                  onChange=${(e) => setHasDrips(e.target.checked)} 
+                />
+                <div className="switch-ui"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Showcase Grid -->
+          <div className="showcase-grid">
+            <div className="showcase-card">
+              <div className="showcase-preview-frame">
+                <canvas ref=${prevMushroomRef} width="180" height="110" />
+              </div>
+              <span className="showcase-title">Cogumelos Ciano</span>
+              <span className="showcase-subtitle">Respiração bioluminescente em loop com canal alfa.</span>
+              <button className="btn-export-pill" onClick=${() => exportSprite(prevMushroomRef, "cogumelo_loop.png")}>
+                Exportar PNG
+              </button>
+            </div>
+
+            <div className="showcase-card">
+              <div className="showcase-preview-frame">
+                <canvas ref=${prevCrystalRef} width="180" height="110" />
+              </div>
+              <span className="showcase-title">Cristais de Ametista</span>
+              <span className="showcase-subtitle">Facetas angulares com glint e centelhas periódicas.</span>
+              <button className="btn-export-pill" onClick=${() => exportSprite(prevCrystalRef, "cristal_loop.png")}>
+                Exportar PNG
+              </button>
+            </div>
+
+            <div className="showcase-card">
+              <div className="showcase-preview-frame">
+                <canvas ref=${prevLedgeRef} width="180" height="110" />
+              </div>
+              <span className="showcase-title">Ponta Arredondada</span>
+              <span className="showcase-subtitle">Bordas orgânicas com textura Pixar de Mármore Azul.</span>
+              <button className="btn-export-pill" onClick=${() => exportSprite(prevLedgeRef, "plataforma_arredondada.png")}>
+                Exportar PNG
+              </button>
+            </div>
+
+            <div className="showcase-card">
+              <div className="showcase-preview-frame">
+                <canvas ref=${prevStalactiteRef} width="180" height="110" />
+              </div>
+              <span className="showcase-title">Estalactites & Gotas</span>
+              <span className="showcase-subtitle">Cúpula de teto com pingos líquidos em gravidade.</span>
+              <button className="btn-export-pill" onClick=${() => exportSprite(prevStalactiteRef, "estalactite_drip.png")}>
+                Exportar PNG
+              </button>
+            </div>
+          </div>
+
+          ${toastMsg && html`<div className="toast">${toastMsg}</div>`}
+        </div>
+      `;
+    }
+
+    createRoot(document.getElementById("root")).render(html`<${AssetStudioApp} />`);
+  </script>
+</body>
+</html>
