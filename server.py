@@ -17,7 +17,7 @@ class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         sys.stdout.flush()
 
 if __name__ == "__main__":
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), NoCacheHTTPRequestHandler) as httpd:
+    http.server.ThreadingHTTPServer.allow_reuse_address = True
+    with http.server.ThreadingHTTPServer(("", PORT), NoCacheHTTPRequestHandler) as httpd:
         print(f"Serving at http://localhost:{PORT} with NO-CACHE headers...", flush=True)
         httpd.serve_forever()

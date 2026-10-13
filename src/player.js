@@ -26,12 +26,15 @@ export class Player {
     this.isHovering = false;
     this.hoverTime = 0;
     this.anvilAtFeetReady = false;
+    this.anvilJumpUsed = false;
     this.doubleJumpEffectTimer = 0;
 
     // Recall Teleport
     this.teleportCooldown = 0;
     this.teleportMaxCooldown = 20.0;
     this.currentSanctuary = { x: 250, y: 390, name: "Templo Central" };
+    this.lastSafeX = 250;
+    this.lastSafeY = 356;
 
     this.facing = 1;
     this.animTime = 0;
@@ -116,7 +119,7 @@ export class Player {
       this.doubleJumpEffectTimer -= dt;
     }
 
-    this.anvilAtFeetReady = !this.isGrounded && this.isAnvilAtFeet(anvil);
+    this.anvilAtFeetReady = !this.isGrounded && !this.anvilJumpUsed && this.isAnvilAtFeet(anvil);
 
     // 1. Horizontal Movement
     const speed = 260;
@@ -133,8 +136,9 @@ export class Player {
       this.animTime = 0;
     }
 
-    // Hoverboard toggle (Hold Space/Down or dedicated trigger)
-    if (this.hasHoverboard && (keys["ShiftLeft"] || keys["KeyS"]) && !this.isGrounded) {
+    // Comando da Prancha / Hoverboard no ar: segurar para baixo (S, ArrowDown, ShiftLeft ou joystick para baixo)
+    const isDownHeld = Boolean(keys["KeyS"] || keys["ArrowDown"] || keys["ShiftLeft"]);
+    if (isDownHeld && !this.isGrounded) {
       this.isHovering = true;
     } else {
       this.isHovering = false;
@@ -145,7 +149,7 @@ export class Player {
     this.vy += gravity * dt;
 
     if (this.isHovering && this.vy > 40) {
-      this.vy = 40; // Gliding downwards gently!
+      this.vy = 40; // Planando suavemente para a frente na prancha!
     }
 
     // Jump Buffering & Coyote Time
@@ -172,18 +176,19 @@ export class Player {
         this.coyoteTime = 0;
         this.jumpBuffer = 0;
         sound.playJump();
-      } else if (!this.isGrounded && this.isAnvilAtFeet(anvil)) {
-        // DOUBLE JUMP: Powerful spring leap with high kinetic reaction!
-        this.vy = -620; // Strong spring-loaded leap upward
+      } else if (!this.isGrounded && !this.anvilJumpUsed && this.isAnvilAtFeet(anvil)) {
+        // PULO NA BIGORNA (Limite rigoroso: 1x por pulo no ar!):
+        this.vy = -620; // Salto vertical vigoroso
         this.coyoteTime = 0;
         this.jumpBuffer = 0;
+        this.anvilJumpUsed = true; // Consumido! Não pode ser usado novamente até tocar solo firme
         this.doubleJumpEffectTimer = 0.35;
 
-        // Action & Reaction: Stomp down the anvil with brutal force!
-        anvil.vy = 760;
+        // Ação e Reação: pisão brutal que arremessa a bigorna para baixo
+        anvil.vy = 850;
         anvil.vx += this.vx * 0.45;
 
-        // Sound & feedback
+        // Som e faíscas de impacto
         sound.playJump();
         sound.playMetalClang(1.4);
         anvil.spawnSparks(this.x + this.w / 2, this.y + this.h);
@@ -225,6 +230,12 @@ export class Player {
           this.vy = 0;
           this.isGrounded = true;
           this.airJumpUsed = false;
+          this.anvilJumpUsed = false; // Reset do pulo na bigorna ao tocar plataforma sólida!
+          // Registra última posição firme segura
+          if (p.type === "ground") {
+            this.lastSafeX = this.x;
+            this.lastSafeY = this.y;
+          }
         } else if (this.vy < 0) {
           this.y = p.y + p.h;
           this.vy = 0;
@@ -239,33 +250,73 @@ export class Player {
       const anvilTop = anvil.y;
       const hOverlap = (this.x + this.w > anvil.x + 4) && (this.x < anvil.x + anvil.w - 4);
 
-      if (this.vy >= 0 && footY >= anvilTop - 2 && footY <= anvilTop + 14 && hOverlap) {
+      if (this.vy >= 0 && footY >= anvilTop - 2 && footY <= anvilTop + 16 && hOverlap) {
         this.y = anvilTop - this.h;
-        this.vy = Math.max(0, anvil.vy);
-        this.isGrounded = true;
-        this.airJumpUsed = false;
-        this.coyoteTime = 0.12;
+
+        if (anvil.isGrounded) {
+          // Bigorna firmemente apoiada em plataforma/solo: funciona como chão firme
+          this.vy = 0;
+          this.isGrounded = true;
+          this.airJumpUsed = false;
+          this.anvilJumpUsed = false; // Reset ao tocar bigorna que está apoiada no chão!
+          this.coyoteTime = 0.12;
+        } else {
+          // Ambos no ar: massa combinada dos dois despenca pela gravidade somada!
+          // NÃO concede isGrounded e NÃO reseta anvilJumpUsed
+          const sharedVy = Math.max(this.vy, anvil.vy) + 1200 * dt;
+          this.vy = sharedVy;
+          anvil.vy = sharedVy;
+        }
       }
     }
 
-    // 4. Hazard (Spikes/Lava) Collision
+    // 4. Hazard (Spikes / Water) Collision
     if (hazards && hazards.length > 0 && this.invulnerableTimer <= 0) {
       for (const h of hazards) {
         if (Physics.checkAABB(box, h)) {
-          this.takeDamage(30);
-          this.vy = -440; // knockback bounce
-          sound.playMetalClang(1.5);
+          if (h.type === "water") {
+            // Queda na ÁGUA: perde um pouco de vida e é IMEDIATAMENTE RETIRADO DA ÁGUA
+            this.takeDamage(15);
+            sound.playWaterSplash();
+            // Retira o jogador da água colocando-o de volta na margem sólida
+            this.x = this.lastSafeX;
+            this.y = this.lastSafeY;
+            this.vx = 0;
+            this.vy = 0;
+            this.isGrounded = true;
+            this.anvilJumpUsed = false;
+            this.coyoteTime = 0.12;
+            this.invulnerableTimer = 0.8;
+
+            // Recoloca a bigorna no mapa ao lado do jogador
+            if (anvil) {
+              anvil.respawnNearPlayer(this);
+            }
+          } else {
+            // Espinhos de ferro
+            this.takeDamage(30);
+            this.vy = -440; // knockback bounce
+            sound.playMetalClang(1.5);
+          }
           break;
         }
       }
     }
 
-    // 5. True bottomless abyss safeguard (only deep fatal fall)
-    if (this.y > 960) {
-      this.takeDamage(35);
-      this.x = this.currentSanctuary.x;
-      this.y = this.currentSanctuary.y;
+    // 5. Salvaguarda: se cair abaixo da linha do terreno, recoloca na última posição segura
+    if (this.y > 460) {
+      this.takeDamage(15);
+      this.x = this.lastSafeX;
+      this.y = this.lastSafeY;
+      this.vx = 0;
       this.vy = 0;
+      this.isGrounded = true;
+      this.anvilJumpUsed = false;
+      this.coyoteTime = 0.12;
+      this.invulnerableTimer = 0.8;
+      if (anvil) {
+        anvil.respawnNearPlayer(this);
+      }
     }
   }
 

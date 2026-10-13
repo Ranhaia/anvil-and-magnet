@@ -10,25 +10,29 @@ class SoundSynthesizer {
   }
 
   init() {
-    if (this.initialized) return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioContext();
-      this.initialized = true;
+    if (!this.initialized) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+        this.initialized = true;
 
-      // Audio Elements for Original Soundtracks
-      this.bgmMenu = new Audio("assets/audio/jhou_menu.ogg");
-      this.bgmMenu.loop = true;
-      this.bgmMenu.volume = 0.45;
+        // Audio Elements for Original Soundtracks
+        this.bgmMenu = new Audio("assets/audio/jhou_menu.ogg");
+        this.bgmMenu.loop = true;
+        this.bgmMenu.volume = 0.45;
 
-      this.bgmGameplay = new Audio("assets/audio/jhontrilha.ogg");
-      this.bgmGameplay.loop = true;
-      this.bgmGameplay.volume = 0.5;
+        this.bgmGameplay = new Audio("assets/audio/jhontrilha.ogg");
+        this.bgmGameplay.loop = true;
+        this.bgmGameplay.volume = 0.5;
 
-      this.sfxSmash = new Audio("assets/audio/smash.ogg");
-      this.sfxSmash.volume = 0.7;
-    } catch (e) {
-      console.warn("Web Audio not supported:", e);
+        this.sfxSmash = new Audio("assets/audio/smash.ogg");
+        this.sfxSmash.volume = 0.7;
+      } catch (e) {
+        console.warn("Web Audio not supported:", e);
+      }
+    }
+    if (this.ctx && this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
     }
   }
 
@@ -237,6 +241,54 @@ class SoundSynthesizer {
     noise.stop(now + 1.2);
   }
 
+  // Water splash sound when falling into water hazards
+  playWaterSplash() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Plop/splash sine drop
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.32);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.32);
+
+    // Water spray noise
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.35);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.exponentialRampToValueAtTime(300, now + 0.35);
+    filter.Q.setValueAtTime(2.5, now);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.3, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + 0.35);
+  }
+
   // Gore squish sound when enemy is squashed
   playGore() {
     if (this.muted || !this.ctx) return;
@@ -299,23 +351,25 @@ class SoundSynthesizer {
   }
 
   playPowerup() {
-    if (this.muted || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const notes = [261.63, 329.63, 392.00, 523.25];
-    notes.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+    try {
+      if (this.muted || !this.ctx || this.ctx.state === "suspended") return;
+      const now = this.ctx.currentTime;
+      const notes = [261.63, 329.63, 392.00, 523.25];
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
 
-      gain.gain.setValueAtTime(0.25, now + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+        gain.gain.setValueAtTime(0.25, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now + idx * 0.08);
-      osc.stop(now + idx * 0.08 + 0.2);
-    });
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.2);
+      });
+    } catch (e) {}
   }
 }
 

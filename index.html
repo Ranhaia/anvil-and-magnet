@@ -2,303 +2,214 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Anvil & Magnet — Micro-Metroidvania Roguelite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Anvil &amp; Magnet — Micro-Metroidvania Roguelite</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="shortcut icon" href="assets/favicon.ico">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&amp;family=Press+Start+2P&amp;display=swap">
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
-  <!-- 1. Background Sky Canvas (Procedural Lightning & Thunderstorm Shader) -->
-  <canvas id="sky-shader-canvas" aria-hidden="true"></canvas>
+  <!-- Single stage: a 16:9 box that always fits inside the browser window -->
+  <main id="stage" class="stage">
 
-  <!-- 2. Cavern Workshop Backdrop (Silhouettes with Chains & Giant Anvils) -->
-  <div class="cavern-backdrop" aria-hidden="true"></div>
+    <!-- Game canvas (960 x 540 native resolution) -->
+    <canvas id="game-canvas" width="960" height="540"></canvas>
 
-  <!-- 3. Floating Transparent Game Logo in Front of Background -->
-  <div class="floating-game-logo" aria-hidden="true">
-    <img src="assets/game_logo_transparent.png" alt="Anvil & Magnet" class="logo-glow-img" />
-  </div>
+    <!-- TV de Tubo (CRT Screen Overlay: Scanlines, Vignette & Tube Glass Glow) -->
+    <div id="crt-overlay" class="crt-overlay" aria-hidden="true"></div>
 
-  <!-- 4. Interactive Arcade Stage (Handles Smooth Camera Zoom on Start) -->
-  <div id="arcade-stage" class="arcade-viewport cabinet-overview">
-    <!-- Left Cabinet Side Art (Texture2D_asset_3_1) -->
-    <aside class="arcade-side-art left-side-art" aria-label="Arte lateral esquerda do fliperama">
-      <div class="side-art-panel">
-        <img src="assets/arcade_side_art.png" alt="Anvil Joe Arcade Side Art" class="side-art-img" />
+    <!-- HUD Overlay (In-game: Vitals, Live Points/Scoreboard, Sanctuary Status) -->
+    <div id="hud" class="hud" hidden>
+      <!-- Top Left: HP and Gas Vitals -->
+      <div class="hud-vitals">
+        <div class="hud-row">
+          <span class="hud-lbl">HP</span>
+          <div class="hud-track"><div id="health-bar-fill" class="hud-fill hp"></div></div>
+          <span id="health-value-text" class="hud-val">100</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-lbl">GÁS</span>
+          <div class="hud-track"><div id="gas-bar-fill" class="hud-fill gas"></div></div>
+          <button id="gas-ready-badge" class="gas-ready" type="button" hidden>PRONTO</button>
+        </div>
+      </div>
+
+      <!-- Top Center/Right: Live Scoreboard on Screen -->
+      <div class="hud-scoreboard">
+        <div class="hud-stat-box score-box">
+          <span class="stat-tag">SCORE</span>
+          <strong id="score-readout" class="stat-number score-val">000000</strong>
+        </div>
+        <div class="hud-stat-box hi-box">
+          <span class="stat-tag">HI-SCORE</span>
+          <strong id="high-score-readout" class="stat-number gold">000000</strong>
+        </div>
+        <div class="hud-stat-box depth-box">
+          <span class="stat-tag">PROFUNDIDADE</span>
+          <strong id="distance-readout" class="stat-number cyan">0000 m</strong>
+        </div>
+        <div class="hud-stat-box combo-box">
+          <span class="stat-tag">COMBO</span>
+          <strong id="multiplier-readout" class="stat-number multi-val">1.0x</strong>
+        </div>
+      </div>
+
+      <!-- Top Far Right: Unified Pause/Menu Button -->
+      <button id="menu-btn" class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-panel" title="Pausar / Menu de Opções (P, Esc, Tab)">
+        <span class="menu-btn-icon" aria-hidden="true">⏸</span>
+        <span class="menu-btn-text">PAUSA</span>
+        <kbd>P</kbd>
+      </button>
+
+      <!-- Center Alerts & Badges -->
+      <div id="blood-moon-indicator" class="blood-moon-alarm" role="alert" hidden>
+        LUA VERMELHA · FRENESI +40% VEL.
+      </div>
+
+      <div id="upgrade-toast" class="upgrade-toast" role="status" aria-live="polite" hidden>
+        <strong id="toast-title">UPGRADE DESBLOQUEADO</strong>
+        <span id="toast-desc">Descrição do poder</span>
+      </div>
+
+      <!-- Bottom Status Bar (Sanctuary Recall & Upgrades) -->
+      <div class="hud-bottom-bar">
+        <div id="teleport-status" class="chip ready">
+          <span class="chip-dot" aria-hidden="true"></span><kbd>Q</kbd> Santuário pronto
+        </div>
+        <div class="chip upgrades-chip">
+          <span id="upgrades-chip-text">UPGRADES: NENHUM</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unified Menu & Pause System (Single overlay for settings, pause, stats & controls) -->
+    <aside id="menu-panel" class="menu-panel" aria-label="Menu e Pausa" aria-hidden="true" inert>
+      <header class="menu-head">
+        <div>
+          <span id="menu-kicker" class="menu-kicker">ANVIL &amp; MAGNET</span>
+          <h2 id="menu-title" class="menu-title">PAUSADO</h2>
+        </div>
+        <button id="menu-close-btn" class="menu-close" type="button" aria-label="Fechar menu e continuar">✕</button>
+      </header>
+
+      <div class="menu-body">
+        <!-- In-Game Pause Actions (Visible during game) -->
+        <div id="menu-pause-actions" class="menu-pause-actions">
+          <button id="menu-resume-btn" class="primary-btn pause-resume-btn" type="button">
+            CONTINUAR <kbd>Esc</kbd>
+          </button>
+          <button id="menu-restart-btn" class="secondary-btn" type="button">
+            REINICIAR RUN
+          </button>
+        </div>
+
+        <!-- Section: Ajustes -->
+        <section class="menu-section">
+          <h3 class="menu-h">Ajustes</h3>
+          <div class="setting-list">
+            <button id="sound-btn" class="setting" type="button" role="switch" aria-checked="true">
+              <span class="setting-name">Som do Jogo</span>
+              <span class="setting-value">LIGADO</span>
+            </button>
+            <button id="touch-toggle-btn" class="setting" type="button">
+              <span class="setting-name">Controles Touch</span>
+              <span class="setting-value">AUTO</span>
+            </button>
+            <button id="fullscreen-btn" class="setting" type="button">
+              <span class="setting-name">Tela Cheia</span>
+              <span class="setting-value">ENTRAR</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Section: Comandos -->
+        <section class="menu-section">
+          <h3 class="menu-h">Comandos &amp; Teclas</h3>
+          <ul class="key-list">
+            <li><span><kbd>A</kbd><kbd>D</kbd></span>Correr</li>
+            <li><span><kbd>W</kbd><kbd>Espaço</kbd></span>Pular (pule na bigorna p/ impulso)</li>
+            <li><span><kbd>Z</kbd> / Botão Esq.</span>Atrair bigorna (Ímã)</li>
+            <li><span><kbd>X</kbd> / Botão Dir.</span>Canhão magnético (Empurrar)</li>
+            <li><span><kbd>S</kbd> / Baixo (Segure 1s)</span>Teleporte ao Santuário (com barra de carga)</li>
+            <li><span><kbd>E</kbd></span>Super jato de gás (mira no mouse)</li>
+            <li><span><kbd>R</kbd></span>Chamar bigorna de volta</li>
+            <li><span><kbd>P</kbd> / <kbd>Esc</kbd></span>Pausar / Menu</li>
+          </ul>
+        </section>
+
+        <a class="menu-link" href="test-assets.html">Bancada de Assets e Texturas →</a>
       </div>
     </aside>
 
-    <div class="arcade-cabinet">
-      <!-- Marquee Header -->
-      <header class="cabinet-marquee">
-      <div class="marquee-title">
-        <span class="edition-badge">ARCADE EDITION</span>
-        <h1>ANVIL & MAGNET</h1>
-        <span class="sub-badge">ROGUELITE</span>
-      </div>
-      <div class="marquee-actions">
-        <button id="camera-btn" class="arcade-pill" title="Alternar Zoom da Câmera (Fliperama / Jogo)">🎥 CÂMERA: JOGO</button>
-        <button id="fps-btn" class="arcade-pill" title="Alternar Taxa de Quadros (24 / 60 / 30 FPS)">🎞️ FPS: 24</button>
-        <a href="test-assets.html" class="arcade-pill" title="Bancada de Assets e Texturas" style="text-decoration:none; color:inherit;">🔬 ESTÚDIO DE ASSETS</a>
-        <button id="sound-btn" class="arcade-pill" title="Alternar Som">🔊 SOM: LIGADO</button>
-        <button id="fullscreen-btn" class="arcade-pill" title="Tela Cheia">⛶ TELA CHEIA</button>
-      </div>
-    </header>
-
-    <!-- Screen Bezel -->
-    <div class="cabinet-screen">
-      <!-- HUD Overlay (Arcade Fighter Style) -->
-      <div id="hud" class="hud-overlay" hidden>
-        <!-- Top Left: Player 1 Vitality & Special Gauges -->
-        <div class="hud-left">
-          <div class="fighter-tag">
-            <span class="player-num">1P</span>
-            <strong class="fighter-name">MAGNET HERO</strong>
-          </div>
-          <!-- Health Bar with Segments -->
-          <div class="hud-gauge-group">
-            <div class="gauge-label-row">
-              <span class="gauge-title">VIDA</span>
-              <span id="health-value-text" class="gauge-num">100 / 100</span>
-            </div>
-            <div class="gauge-track health-track">
-              <div id="health-bar-fill" class="gauge-fill health-fill"></div>
-            </div>
-          </div>
-          <!-- Gas Pressure Gauge -->
-          <div class="hud-gauge-group">
-            <div class="gauge-label-row">
-              <span class="gauge-title">PRESSÃO DE GÁS [E]</span>
-              <span id="gas-ready-badge" class="gas-ready-badge" hidden>PRONTO!</span>
-            </div>
-            <div class="gauge-track gas-track">
-              <div id="gas-bar-fill" class="gauge-fill gas-fill"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Top Center: Depth Odometer & Blood Moon Alert -->
-        <div class="hud-center">
-          <div class="depth-odometer">
-            <span class="odometer-label">PROFUNDIDADE</span>
-            <strong id="distance-readout" class="odometer-display">0000 m</strong>
-          </div>
-          <div id="blood-moon-indicator" class="blood-moon-alarm" hidden>
-            <span class="alarm-icon">⚠️</span>
-            <span class="alarm-text">LUA VERMELHA · FRENESI ATIVO (+40% VEL.)</span>
-          </div>
-        </div>
-
-        <!-- Top Right: Score & Multiplier Arcade Matrix -->
-        <div class="hud-right">
-          <div class="arcade-score-board">
-            <div class="score-line">
-              <span class="score-lbl">SCORE</span>
-              <strong id="score-readout" class="score-val">000000</strong>
-            </div>
-            <div class="score-line high-score-line">
-              <span class="score-lbl">HI-SCORE</span>
-              <strong id="high-score-readout" class="score-val gold-num">000000</strong>
-            </div>
-            <div class="multiplier-pill">
-              <span>COMBO</span>
-              <strong id="multiplier-readout" class="multi-num">1.0x</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom Quick Status Badge -->
-        <div class="hud-bottom-bar">
-          <div id="teleport-status" class="status-chip ready">
-            <span class="chip-dot">●</span> RECALL SANTUÁRIO [Q]: PRONTO
-          </div>
-          <div id="upgrades-chip" class="status-chip neutral">
-            <span id="upgrades-chip-text">UPGRADES: NENHUM</span>
-          </div>
-        </div>
-
-        <!-- Floating Upgrade Toast Banner -->
-        <div id="upgrade-toast" class="upgrade-toast" hidden>
-          <strong id="toast-title" class="toast-title">UPGRADE DESBLOQUEADO</strong>
-          <span id="toast-desc" class="toast-desc">Descrição do poder</span>
-        </div>
-      </div>
-
-      <!-- Main Canvas -->
-      <canvas id="game-canvas" width="960" height="540"></canvas>
-
-      <!-- Title Screen Overlay (Attract Mode Arcade) -->
-      <div id="title-screen" class="screen-overlay title-overlay">
-        <div class="title-arcade-cabinet">
-          <div class="title-marquee-glow">
-            <p class="title-kicker">MICRO-METROIDVANIA ROGUELITE</p>
-            <h1 class="title-logo">ANVIL & MAGNET<br><span class="logo-sub">ROGUELITE EDITION</span></h1>
-            <p class="title-tagline">DOMINE O MAGNETISMO · ESMAGUE COM A BIGORNA · SOBREVIVA À LUA VERMELHA</p>
-          </div>
-
-          <div class="title-center-action">
-            <button id="start-btn" class="press-start-btn">
-              <span class="blink-start">PRESS ENTER OU CLIQUE PARA JOGAR</span>
-            </button>
-            <span class="credit-badge">INSERT COIN · CREDIT 01</span>
-          </div>
-
-          <div class="arcade-instruction-grid">
-            <div class="instruction-card">
-              <div class="instruct-header">🎮 MOVIMENTAÇÃO</div>
-              <div class="instruct-keys"><kbd>A</kbd> <kbd>D</kbd> Correr &nbsp;·&nbsp; <kbd>W</kbd> / <kbd>Espaço</kbd> Pular (Pulo Duplo com Bigorna)</div>
-            </div>
-            <div class="instruction-card">
-              <div class="instruct-header">🧲 FÍSICA MAGNÉTICA</div>
-              <div class="instruct-keys"><kbd>Mouse Esq / Z</kbd> PULL (Atrair) &nbsp;·&nbsp; <kbd>Mouse Dir / X</kbd> PUSH (Canhão)</div>
-            </div>
-            <div class="instruction-card">
-              <div class="instruct-header">💥 HABILIDADES & CÂMERA</div>
-              <div class="instruct-keys"><kbd>E</kbd> Olha o Gás! &nbsp;·&nbsp; <kbd>R</kbd> Recall &nbsp;·&nbsp; <kbd>Q</kbd> Teleporte &nbsp;·&nbsp; <kbd>C</kbd> Zoom Câmera</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Game Over Overlay (Arcade Continue Screen) -->
-      <div id="game-over-screen" class="screen-overlay game-over-overlay" hidden>
-        <div class="game-over-slip">
-          <!-- Illustration from Texture2D_asset_8 -->
-          <div class="slip-illustration-col">
-            <img src="assets/game_over_card.png" alt="Herói Esmagado pela Bigorna" class="game-over-hero-card" />
-          </div>
-
-          <!-- Stats & Continue Details -->
-          <div class="slip-details-col">
-            <div class="slip-header">
-              <span class="slip-stamp">RUN TERMINATED</span>
-              <img src="assets/game_over_text_red.png" alt="GAME OVER" class="game-over-title-img" />
-              <p class="slip-subtitle">A BIGORNA CAIU · FIM DA RUN</p>
-            </div>
-
-            <div class="slip-receipt">
-              <div class="receipt-row">
-                <span>PROFUNDIDADE ALCANÇADA</span>
-                <strong id="go-dist">0 m</strong>
-              </div>
-              <div class="receipt-row">
-                <span>MONSTROS ESMAGADOS</span>
-                <strong id="go-kills">0</strong>
-              </div>
-              <div class="receipt-row">
-                <span>PONTUAÇÃO FINAL</span>
-                <strong id="go-score" class="cyan-val">0</strong>
-              </div>
-              <div class="receipt-row highlight-row">
-                <span>RECORDE DO FLIPERAMA</span>
-                <strong id="go-high" class="gold-val">0</strong>
-              </div>
-            </div>
-
-            <div class="slip-actions">
-              <button id="restart-btn" class="arcade-continue-btn">
-                <span>TENTAR NOVAMENTE · ENTER</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Fortune / Sorte ou Revés Modal (Arcade Blessing Cards) -->
-      <div id="fortune-modal" class="screen-overlay fortune-overlay" hidden>
-        <div class="fortune-dialog">
-          <div class="fortune-header">
-            <span class="altar-badge">ALTAR DA FORTUNA</span>
-            <h3>ESCOLHA SEU DESTINO (SORTE OU REVÉS)</h3>
-            <p>Sobreviver à provação concede poder... mas exige um sacrifício.</p>
-          </div>
-          <div id="fortune-options" class="fortune-cards-container"></div>
-        </div>
+    <!-- Title Screen Overlay -->
+    <div id="title-screen" class="overlay title-overlay">
+      <div class="title-box">
+        <p class="title-kicker">MICRO-METROIDVANIA ROGUELITE</p>
+        <h1 class="title-logo">ANVIL &amp; MAGNET</h1>
+        <p class="title-tagline">Domine o magnetismo · Esmague com a bigorna · Sobreviva à lua vermelha</p>
+        <button id="start-btn" class="primary-btn" type="button">JOGAR</button>
+        <span class="hint">Enter, Espaço ou clique</span>
       </div>
     </div>
 
-    <!-- Physical Arcade Control Deck -->
-    <div class="control-deck" aria-label="Painel de controles arcade">
-      <!-- Joystick Section -->
-      <div class="stick-section">
-        <div id="joystick" class="joystick" role="group" aria-label="Manche Direcional">
-          <div class="stick-shaft" aria-hidden="true"></div>
-          <div class="stick-ball" aria-hidden="true"></div>
-          <div class="dpad-buttons">
-            <button class="pad-up" data-key="KeyW" aria-label="Cima / Pulo">▲</button>
-            <button class="pad-left" data-key="KeyA" aria-label="Esquerda">◀</button>
-            <button class="pad-down" data-key="KeyS" aria-label="Baixo">▼</button>
-            <button class="pad-right" data-key="KeyD" aria-label="Direita">▶</button>
+    <!-- Game Over Overlay -->
+    <div id="game-over-screen" class="overlay game-over-overlay" hidden>
+      <div class="dialog-box over-box">
+        <span class="stamp">RUN TERMINATED</span>
+        <h2 class="dialog-title danger">GAME OVER</h2>
+        <p class="over-sub">A bigorna caiu · fim da run</p>
+        <dl class="receipt">
+          <div><dt>Profundidade</dt><dd id="go-dist">0 m</dd></div>
+          <div><dt>Monstros esmagados</dt><dd id="go-kills">0</dd></div>
+          <div><dt>Pontuação final</dt><dd id="go-score" class="cyan">0</dd></div>
+          <div class="hl"><dt>Recorde</dt><dd id="go-high" class="gold">0</dd></div>
+        </dl>
+        <button id="restart-btn" class="primary-btn" type="button">TENTAR NOVAMENTE · ENTER</button>
+      </div>
+    </div>
+
+    <!-- Fortune Altar Modal -->
+    <div id="fortune-modal" class="overlay fortune-overlay" role="dialog" aria-modal="true" aria-labelledby="fortune-title" hidden>
+      <div class="dialog-box fortune-box">
+        <span class="stamp">ALTAR DA FORTUNA</span>
+        <h2 id="fortune-title" class="dialog-title">Escolha seu destino</h2>
+        <p class="over-sub">Sobreviver concede poder, mas exige um sacrifício. Tecle 1 ou 2.</p>
+        <div id="fortune-options" class="fortune-cards"></div>
+      </div>
+    </div>
+
+    <!-- Touch controls (visible only while playing, when touch is on) -->
+    <div id="mobile-touch-overlay" class="touch-hud" aria-label="Controles touch">
+      <!-- Left Joystick: Move Left/Right, UP = Jump, DOWN = Hold 1s to Recall to Sanctuary -->
+      <div id="touch-move-stick" class="touch-joystick" role="group" aria-label="Manete de movimento e pulo">
+        <div class="joystick-base">
+          <span class="arrow arrow-up" title="Pulo">▲</span>
+          <span class="arrow arrow-left">◀</span>
+          <span class="arrow arrow-right">▶</span>
+          <span class="arrow arrow-down" title="Segure para baixo p/ Santuário">▼</span>
+          <div id="touch-move-knob" class="joystick-knob"></div>
+        </div>
+      </div>
+
+      <!-- Right Touch Controls: Gas Button + Magnetic Joystick -->
+      <div class="touch-right">
+        <button id="touch-gas-btn" class="touch-btn gas-touch-btn" type="button" aria-label="Gás especial">
+          <span>GÁS</span>
+        </button>
+        <div id="touch-magnet-stick" class="touch-joystick" role="group" aria-label="Manete magnética">
+          <div class="joystick-base magnet-base">
+            <span class="magnet-tag pull-tag">PUXAR</span>
+            <span class="magnet-tag push-tag">EMPURRAR</span>
+            <div id="touch-magnet-knob" class="joystick-knob"></div>
           </div>
         </div>
-        <span class="deck-label">MANCHE DIRECIONAL</span>
-        <span class="keyboard-hint">A · W · S · D</span>
-      </div>
-
-      <!-- Deck Center Emblem -->
-      <div class="deck-center">
-        <span>ARCADE SYSTEM</span>
-        <b>PRO</b>
-        <small>ANVIL & MAGNET</small>
-      </div>
-
-      <!-- Arcade Action Buttons (Sanwa Style) -->
-      <div class="arcade-buttons" aria-label="Seis botões arcade de ação">
-        <button class="arcade-button red" data-action="pull" title="Mouse Esq. / Z: Puxar Bigorna">
-          <span class="button-cap"><kbd>Z</kbd></span>
-          <strong>PULL</strong>
-        </button>
-        <button class="arcade-button yellow" data-action="push" title="Mouse Dir. / X: Canhão Push">
-          <span class="button-cap"><kbd>X</kbd></span>
-          <strong>PUSH</strong>
-        </button>
-        <button class="arcade-button blue" data-key="Space" title="Espaço: Pulo">
-          <span class="button-cap"><kbd>ESP</kbd></span>
-          <strong>PULO</strong>
-        </button>
-        <button class="arcade-button green" data-key="KeyE" title="E: Especial Olha o Gás">
-          <span class="button-cap"><kbd>E</kbd></span>
-          <strong>GÁS</strong>
-        </button>
-        <button class="arcade-button purple" data-key="KeyR" title="R: Chamar Bigorna aos Pés">
-          <span class="button-cap"><kbd>R</kbd></span>
-          <strong>RECALL</strong>
-        </button>
-        <button class="arcade-button gold" data-key="KeyQ" title="Q: Teleporte de Retorno">
-          <span class="button-cap"><kbd>Q</kbd></span>
-          <strong>TEMPLO</strong>
-        </button>
       </div>
     </div>
+  </main>
 
-    <!-- Cabinet Bottom Console (Coin Slot & Credits) -->
-    <div class="cabinet-bottom">
-      <div class="coin-slot">
-        <span>INSERT COIN</span>
-        <i></i>
-      </div>
-      <div class="session-readout">
-        <span class="credit-pulse">● CREDIT 01</span>
-      </div>
-      <div class="system-actions">
-        <button id="deck-start-btn" class="system-btn">1P START</button>
-        <a href="test-assets.html" class="system-btn studio-btn" target="_blank">🔬 ASSET STUDIO</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Right Cabinet Side Art (Texture2D_asset_3_1) -->
-  <aside class="arcade-side-art right-side-art" aria-label="Arte lateral direita do fliperama">
-    <div class="side-art-panel mirrored">
-      <img src="assets/arcade_side_art.png" alt="Anvil Joe Arcade Side Art" class="side-art-img" />
-    </div>
-  </aside>
-</div>
-
-  <script type="module" src="src/game.js?v=7"></script>
+  <script type="module" src="src/game.js?v=24"></script>
 </body>
 </html>

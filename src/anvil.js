@@ -24,11 +24,19 @@ export class Anvil {
     this.hitLockCooldown = 0;
     this.isLockedToPlayer = false;
     this.lockSide = null; // "left", "right", "feet", "head"
+
+    // Anti-stuck auto-recall mechanism (recalls after 2s stuck in same place)
+    this.stuckRefX = x;
+    this.stuckRefY = y;
+    this.stuckTimer = 0;
+    this.isUnderMagneticForce = false;
+    this.isGrounded = false;
   }
 
   // Magnetic force with rotational torque
   applyMagneticForce(interaction, isPull, dt) {
     if (!interaction.inRange) return;
+    this.isUnderMagneticForce = true;
 
     // Pull attracts toward player (-dirToAnvil), Push repels (+dirToAnvil)
     const sign = isPull ? -1 : 1;
@@ -43,11 +51,6 @@ export class Anvil {
     const torque = (interaction.dirToAnvilX * this.vy - interaction.dirToAnvilY * this.vx) * 0.005;
     this.vRot += (torque + (isPull ? -2.5 : 2.5) * interaction.strength) * dt;
     this.vRot = Math.max(-14, Math.min(14, this.vRot));
-
-    // Anti-gravity lift during PULL
-    if (isPull) {
-      this.vy -= (1100 + 400 * interaction.strength) * dt;
-    }
 
     // Terminal velocity cap
     const speed = Math.hypot(this.vx, this.vy);
@@ -75,18 +78,18 @@ export class Anvil {
   }
 
   respawnNearPlayer(player) {
-    this.x = player.x + (player.facing || 1) * 35;
-    this.y = player.y - 100;
+    this.x = player.x + (player.facing || 1) * 36;
+    this.y = player.y - 45; // Posicionada confortavelmente acima do solo firme ao lado do jogador
     this.vx = 0;
-    this.vy = 80;
+    this.vy = 40;
     this.vRot = 0;
-    sound.playTeleport();
+    sound.playMetalClang(1.0);
     this.spawnSparks(this.x + this.w / 2, this.y + this.h / 2);
   }
 
   update(player, platforms, dt, isPulling = false, camera = null) {
-    // 1. Gravity & Friction
-    this.vy += 950 * dt;
+    // 1. Gravity & Friction: Gravidade pesada da bigorna (1200 px/s²) sem redução no ar
+    this.vy += 1200 * dt;
     this.vx *= Math.pow(0.985, dt * 60);
     this.vy *= Math.pow(0.992, dt * 60);
 
@@ -109,17 +112,14 @@ export class Anvil {
         if (this.vx > 0) this.x = p.x - this.w;
         else if (this.vx < 0) this.x = p.x + p.w;
 
-        if (isPulling) {
-          this.vy = Math.min(this.vy, -380);
-        } else {
-          this.vx = -this.vx * 0.35; // Gentle bounce
-        }
+        this.vx = -this.vx * 0.35; // Gentle bounce
         box.x = this.x;
       }
     }
 
     // Move Y
     this.y += this.vy * dt;
+    this.isGrounded = false;
     box = { x: this.x, y: this.y, w: this.w, h: this.h };
     for (const p of platforms) {
       if (Physics.checkAABB(box, p)) {
@@ -131,6 +131,7 @@ export class Anvil {
         }
         if (this.vy > 0) {
           this.y = p.y - this.h;
+          this.isGrounded = true; // Firmemente apoiada em plataforma/solo
           // Smooth settling on flat surface when stationary
           if (Math.abs(this.vx) < 25 && Math.abs(this.vy) < 45) {
             this.vRot *= 0.8;
@@ -170,12 +171,39 @@ export class Anvil {
         this.y = minY;
         this.vy = Math.abs(this.vy) * 0.45;
         this.vRot = -this.vRot * 0.5;
-      } else if (this.y > maxY) {
-        this.y = maxY;
-        this.vy = -Math.abs(this.vy) * 0.45;
-        this.vRot = -this.vRot * 0.5;
+      } else if (this.y > 430 || this.y > maxY) {
+        // Se a bigorna cair na água ou abaixo do solo, recoloca ela no mapa novamente ao lado do jogador!
+        this.respawnNearPlayer(player);
       }
     }
+
+    // 6.5. ANTI-STUCK AUTO-RECALL: Volta automaticamente para o jogador se ficar no mesmo local por mais de 2s
+    const distMoved = Math.hypot(this.x - this.stuckRefX, this.y - this.stuckRefY);
+    const distToPlayer = Math.hypot((this.x + this.w / 2) - (player.x + player.w / 2), (this.y + this.h / 2) - (player.y + player.h / 2));
+
+    // Considera o mesmo local se a bigorna não se deslocar mais de 26px
+    if (distMoved < 26) {
+      // Se está tentando atrair/repelir (mesmo fazendo movimento) OU se está afastada do jogador (> 160px)
+      if (this.isUnderMagneticForce || distToPlayer > 160) {
+        this.stuckTimer += dt;
+        if (this.stuckTimer >= 2.0) {
+          this.respawnNearPlayer(player);
+          this.stuckTimer = 0;
+          this.stuckRefX = this.x;
+          this.stuckRefY = this.y;
+        }
+      } else {
+        this.stuckTimer = Math.max(0, this.stuckTimer - dt);
+      }
+    } else {
+      // Deslocou-se livremente: atualiza ponto de referência e zera timer
+      this.stuckRefX = this.x;
+      this.stuckRefY = this.y;
+      this.stuckTimer = 0;
+    }
+
+    // Reseta flag para a próxima iteração
+    this.isUnderMagneticForce = false;
 
     // Update Sparks
     for (let i = this.sparks.length - 1; i >= 0; i--) {
@@ -280,14 +308,6 @@ export class Anvil {
     } else {
       ctx.fillStyle = "#455a64";
       ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
-    }
-
-    // Magnetic kinetic aura when moving fast
-    const speed = Math.hypot(this.vx, this.vy);
-    if (speed > 160) {
-      ctx.strokeStyle = "rgba(0, 229, 255, 0.65)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-this.w / 2 - 2, -this.h / 2 - 2, this.w + 4, this.h + 4);
     }
 
     ctx.restore();
